@@ -1,0 +1,344 @@
+### ============================================================
+### LUCROM Studio AI — Testes Individuais de Serviço
+### Arquivo: test/api.http  (use com REST Client do VS Code ou JetBrains)
+### ============================================================
+### Configure as variáveis abaixo antes de executar:
+###   BASE_URL  — URL base da API (local ou staging)
+###   TOKEN     — valor do API_TOKEN configurado no .env
+### ============================================================
+
+@BASE_URL = http://localhost:3000
+@TOKEN = seu_api_token_aqui
+
+### ─── 0. Health Check (sem autenticação) ───────────────────────────────────
+
+GET {{BASE_URL}}/api/healthz
+
+### ─── 1. Tenants ─────────────────────────────────────────────────────────────
+
+### Criar tenant CREATOR
+POST {{BASE_URL}}/api/v1/tenants
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "name": "Loja Exemplo Ltda",
+  "plan_tier": "CREATOR"
+}
+
+### Criar tenant ENTERPRISE
+POST {{BASE_URL}}/api/v1/tenants
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "name": "Rede Farmácias SA",
+  "plan_tier": "ENTERPRISE"
+}
+
+### Listar todos os tenants
+GET {{BASE_URL}}/api/v1/tenants
+Authorization: Bearer {{TOKEN}}
+
+### Buscar tenant por ID (substitua o UUID abaixo)
+GET {{BASE_URL}}/api/v1/tenants/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{TOKEN}}
+
+### ─── 2. Media Assets — Upload ───────────────────────────────────────────────
+
+### Upload de vídeo bruto (multipart/form-data)
+### Substitua TENANT_ID e ajuste o caminho do arquivo
+POST {{BASE_URL}}/api/v1/media-assets/upload
+Authorization: Bearer {{TOKEN}}
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
+Content-Disposition: form-data; name="tenant_id"
+
+00000000-0000-0000-0000-000000000001
+------FormBoundary
+Content-Disposition: form-data; name="file"; filename="raw_video.mp4"
+Content-Type: video/mp4
+
+< ./sample_video.mp4
+------FormBoundary--
+
+### Listar assets de um tenant
+GET {{BASE_URL}}/api/v1/media-assets/tenant/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{TOKEN}}
+
+### Buscar asset por ID e obter URL de download
+GET {{BASE_URL}}/api/v1/media-assets/00000000-0000-0000-0000-000000000002
+Authorization: Bearer {{TOKEN}}
+
+### ─── 3. Consent Records ─────────────────────────────────────────────────────
+
+### Registrar consentimento de rosto
+POST {{BASE_URL}}/api/v1/consent
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "subject_type": "face",
+  "subject_name": "João Silva",
+  "expires_at": "2027-12-31T23:59:59Z"
+}
+
+### Registrar consentimento de voz
+POST {{BASE_URL}}/api/v1/consent
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "subject_type": "voice",
+  "subject_name": "Maria Santos"
+}
+
+### Verificar consentimento válido
+GET {{BASE_URL}}/api/v1/consent/check?tenant_id=00000000-0000-0000-0000-000000000001&subject_type=face&subject_name=João%20Silva
+Authorization: Bearer {{TOKEN}}
+
+### Listar consentimentos de um tenant
+GET {{BASE_URL}}/api/v1/consent/tenant/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{TOKEN}}
+
+### Revogar consentimento (substitua o UUID do consent)
+POST {{BASE_URL}}/api/v1/consent/00000000-0000-0000-0000-000000000003/revoke
+Authorization: Bearer {{TOKEN}}
+
+### ─── 4. Engine M8 — Render ─────────────────────────────────────────────────
+
+### Enfileirar render básico (sem etapas generativas)
+### raw_video_key = s3_key retornado no upload acima
+POST {{BASE_URL}}/api/v1/engines/m8/render
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "script_id": "00000000-0000-0000-0000-000000000099",
+  "raw_video_key": "00000000-0000-0000-0000-000000000001/upload/00000000-0000-0000-0000-000000000002",
+  "pipeline_options": {
+    "subtitles_style": "none",
+    "background_denoise": false
+  },
+  "script_text": "Conheça nossos produtos. Qualidade garantida. Venha nos visitar.",
+  "brand_kit": {
+    "palette": ["#FF5733", "#FFFFFF", "#333333"],
+    "forbidden_words": ["concorrente", "barato"]
+  }
+}
+
+### Enfileirar render com Audio Clean + Legendas (Etapa 1 + Etapa 4)
+POST {{BASE_URL}}/api/v1/engines/m8/render
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "script_id": "00000000-0000-0000-0000-000000000099",
+  "raw_video_key": "00000000-0000-0000-0000-000000000001/upload/00000000-0000-0000-0000-000000000002",
+  "pipeline_options": {
+    "enable_audio_clean": true,
+    "language": "pt",
+    "subtitles_style": "word_level"
+  },
+  "script_text": "Bem-vindo à nossa farmácia. Atendimento humanizado todos os dias."
+}
+
+### Enfileirar render completo (todas as etapas — nicho marcenaria)
+POST {{BASE_URL}}/api/v1/engines/m8/render
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "script_id": "00000000-0000-0000-0000-000000000099",
+  "raw_video_key": "00000000-0000-0000-0000-000000000001/upload/00000000-0000-0000-0000-000000000002",
+  "pipeline_options": {
+    "enable_audio_clean": true,
+    "language": "pt",
+    "enable_matting": true,
+    "niche": "marcenaria",
+    "subtitles_style": "word_level",
+    "output_width": 1080,
+    "output_height": 1920
+  },
+  "script_text": "Móveis sob medida com qualidade incomparável. Venha conhecer nosso showroom.",
+  "brand_kit": {
+    "palette": ["#8B4513", "#DEB887", "#FFFFFF"],
+    "forbidden_words": []
+  }
+}
+
+### Consultar status de um render job
+GET {{BASE_URL}}/api/v1/engines/m8/render/00000000-0000-0000-0000-000000000010
+Authorization: Bearer {{TOKEN}}
+
+### Listar render jobs de um tenant
+GET {{BASE_URL}}/api/v1/engines/m8/render/tenant/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{TOKEN}}
+
+### ─── 5. Quality Iterations ──────────────────────────────────────────────────
+
+### Listar iterações do Quality Director para um render job
+GET {{BASE_URL}}/api/v1/quality-iterations/render-job/00000000-0000-0000-0000-000000000010
+Authorization: Bearer {{TOKEN}}
+
+### ─── 6. Audit Gate Logs ─────────────────────────────────────────────────────
+
+### Logs de auditoria por asset
+GET {{BASE_URL}}/api/v1/audit-gate-logs/asset/00000000-0000-0000-0000-000000000011
+Authorization: Bearer {{TOKEN}}
+
+### Logs de auditoria por tenant (últimos 200)
+GET {{BASE_URL}}/api/v1/audit-gate-logs/tenant/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{TOKEN}}
+
+### ─── 7. Script Generator (Lacuna 1) ────────────────────────────────────────
+
+### Gerar roteiro/copy para Reels de farmácia
+POST {{BASE_URL}}/api/v1/scripts/generate
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "brief": "Promoção de vitamina D em dose alta, válida até o fim do mês, com desconto de 20% para quem apresentar este vídeo na farmácia.",
+  "niche": "farmacia",
+  "platform": "instagram_reels",
+  "target_duration_seconds": 25,
+  "forbidden_words": ["concorrente", "milagroso"]
+}
+
+### Buscar roteiro gerado por ID
+GET {{BASE_URL}}/api/v1/scripts/00000000-0000-0000-0000-000000000020
+Authorization: Bearer {{TOKEN}}
+
+### Listar roteiros de um tenant
+GET {{BASE_URL}}/api/v1/scripts/tenant/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{TOKEN}}
+
+### ─── 8. Graphic Composer (Lacuna 2) ────────────────────────────────────────
+
+### Compor carrossel de 3 slides (formato feed, 1080x1350)
+POST {{BASE_URL}}/api/v1/graphics/compose
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "kind": "carousel",
+  "format": "1080x1350",
+  "slides": [
+    { "title": "Vitamina D em promoção", "body": "Dose alta, com acompanhamento farmacêutico gratuito.", "footer": "Farmácia Exemplo" },
+    { "title": "20% de desconto", "body": "Apresente este post na loja até o fim do mês.", "footer": "Farmácia Exemplo" },
+    { "title": "Fale com a gente", "body": "Chame no WhatsApp ou venha até a loja mais próxima.", "footer": "Farmácia Exemplo" }
+  ],
+  "brand_kit": {
+    "palette": ["#0B6E4F", "#08A045", "#FFFFFF"],
+    "font_family": "'Helvetica Neue', Arial, sans-serif"
+  }
+}
+
+### Compor arte estática (formato story, 1080x1920)
+POST {{BASE_URL}}/api/v1/graphics/compose
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "kind": "static_art",
+  "format": "1080x1920",
+  "slides": [
+    { "title": "Promoção relâmpago", "body": "20% OFF em vitamina D hoje.", "footer": "Farmácia Exemplo" }
+  ],
+  "brand_kit": {
+    "palette": ["#0B6E4F", "#08A045", "#FFFFFF"]
+  }
+}
+
+### Buscar composição gráfica por ID
+GET {{BASE_URL}}/api/v1/graphics/00000000-0000-0000-0000-000000000030
+Authorization: Bearer {{TOKEN}}
+
+### Listar composições gráficas de um tenant
+GET {{BASE_URL}}/api/v1/graphics/tenant/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{TOKEN}}
+
+### ─── 9. Voice Commands (Lacuna 3) ──────────────────────────────────────────
+
+### Interpretar comando de voz (upload multipart do áudio)
+POST {{BASE_URL}}/api/v1/voice-commands/interpret
+Authorization: Bearer {{TOKEN}}
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
+Content-Disposition: form-data; name="tenant_id"
+
+00000000-0000-0000-0000-000000000001
+------FormBoundary
+Content-Disposition: form-data; name="language"
+
+pt
+------FormBoundary
+Content-Disposition: form-data; name="file"; filename="comando.webm"
+Content-Type: audio/webm
+
+< ./sample_command.webm
+------FormBoundary--
+
+### Buscar comando de voz interpretado por ID
+GET {{BASE_URL}}/api/v1/voice-commands/00000000-0000-0000-0000-000000000040
+Authorization: Bearer {{TOKEN}}
+
+### Listar comandos de voz de um tenant
+GET {{BASE_URL}}/api/v1/voice-commands/tenant/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{TOKEN}}
+
+### ─── 10. Motion Graphics (Lacuna 4) ────────────────────────────────────────
+
+### Overlay de logo/selo (canto superior direito, com opacidade)
+POST {{BASE_URL}}/api/v1/engines/m8/motion-graphics/overlay
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "source_video_key": "00000000-0000-0000-0000-000000000001/upload/00000000-0000-0000-0000-000000000002",
+  "overlay_image_key": "00000000-0000-0000-0000-000000000001/upload/00000000-0000-0000-0000-000000000050",
+  "position": "top_right",
+  "opacity": 0.85,
+  "scale_width": 220
+}
+
+### Lower third (nome + cargo, dos 2s aos 6s do vídeo)
+POST {{BASE_URL}}/api/v1/engines/m8/motion-graphics/lower-third
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "source_video_key": "00000000-0000-0000-0000-000000000001/upload/00000000-0000-0000-0000-000000000002",
+  "title": "Dra. Ana Souza",
+  "subtitle": "Farmacêutica responsável",
+  "start_time": 2,
+  "end_time": 6,
+  "accent_color": "#08A045"
+}
+
+### Transição entre dois clipes (fade de 1s)
+POST {{BASE_URL}}/api/v1/engines/m8/motion-graphics/transition
+Authorization: Bearer {{TOKEN}}
+Content-Type: application/json
+
+{
+  "tenant_id": "00000000-0000-0000-0000-000000000001",
+  "first_clip_key": "00000000-0000-0000-0000-000000000001/upload/00000000-0000-0000-0000-000000000002",
+  "second_clip_key": "00000000-0000-0000-0000-000000000001/upload/00000000-0000-0000-0000-000000000051",
+  "transition": "fade",
+  "duration_seconds": 1
+}
+
