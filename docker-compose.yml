@@ -1,0 +1,114 @@
+version: '3.9'
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LUCROM Studio AI — stack unificada (Frontend + Backend + Infra)
+#
+#   postgres  → Postgres 15 (dados de tenants, media_assets, audit_logs,
+#               ai_generation_jobs, scripts, graphic_compositions etc.)
+#   redis     → Redis 7 (broker das filas BullMQ)
+#   api       → API NestJS (HTTP). Aceita requisições, retorna 202 Accepted
+#               na geração assíncrona de IA, expõe o webhook de callback.
+#   worker    → MESMA imagem da API, rodando `dist/worker-main.js`: consome
+#               jobs:render:high_priority, jobs:render:standard (pipeline M8)
+#               e jobs-video-render (pós-processamento FFmpeg da IA assíncrona).
+#   web       → Frontend Next.js (lucrom-studio-frontend).
+#
+# Uso:
+#   cp apps/api/.env.example apps/api/.env   # preencher os segredos
+#   docker compose up --build
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-lucrom}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-lucrom}
+      POSTGRES_DB: ${DB_NAME:-lucrom_studio_ai}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-lucrom}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: sh -c "npm run migration:run && node dist/main.js"
+    env_file:
+      - ./apps/api/.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: node dist/worker-main.js
+    env_file:
+      - ./apps/api/.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:3000
+        NEXT_PUBLIC_TENANT_ID: ${DEFAULT_TENANT_ID:-}
+        NEXT_PUBLIC_SHOW_INTERNAL_VIEWS: ${SHOW_INTERNAL_VIEWS:-false}
+    restart: unless-stopped
+    environment:
+      # Segredo servidor-a-servidor (ApiTokenGuard) — SÓ em runtime, nunca
+      # como build arg: vira variável de ambiente do processo Node.js que
+      # roda os Route Handlers (app/api/backend/[...path]/route.ts,
+      # lib/production/backend-proxy.ts), nunca embutido no bundle do
+      # navegador (ver correção pós-auditoria em lib/api/client.ts).
+      API_TOKEN: ${API_TOKEN:-dev-local-token}
+    ports:
+      - '3001:3001'
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
