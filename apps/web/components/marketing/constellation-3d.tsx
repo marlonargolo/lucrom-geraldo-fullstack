@@ -7,7 +7,7 @@ import { useEffect, useRef, useCallback } from "react"
 // Componente de partículas triangulares em canvas puro (zero dependências
 // externas). Renderiza milhares de triângulos coloridos formando uma nuvem
 // orgânica em forma de cérebro/neurônio com:
-//   • Rotação 3D suave em torno do eixo Y
+//   • Rotação 3D suave em torno do eixo Y (automática + vinculada ao scroll)
 //   • Reação ao mouse: partículas se afastam do cursor (campo de repulsão)
 //   • Partículas ambiente flutuando ao redor da forma central
 //   • Conexões/sinapses entre partículas próximas ao centro
@@ -182,7 +182,6 @@ function drawTriangle(
   ctx.rotate(rotation)
   ctx.beginPath()
   // triângulo equilátero
-  const h = size * Math.sqrt(3) / 2
   ctx.moveTo(0, -size)
   ctx.lineTo(size * 0.866, size * 0.5)
   ctx.lineTo(-size * 0.866, size * 0.5)
@@ -209,18 +208,26 @@ interface ConstellationProps {
   className?: string
   particleCount?: number
   ambientCount?: number
+  /** Multiplicador da rotação extra vinculada ao scroll (radianos por 100% de scroll). Default: 2π * 1.5 (1.5 voltas ao longo da página). */
+  scrollRotationTurns?: number
+  /** Se true (default), reage ao scroll da página com rotação + leve profundidade extra. */
+  reactToScroll?: boolean
 }
 
 export function Constellation3D({
   className = "",
   particleCount = 1800,
   ambientCount = 200,
+  scrollRotationTurns = 1.5,
+  reactToScroll = true,
 }: ConstellationProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stateRef = useRef({
     particles: [] as Particle[],
-    rotY: 0,           // ângulo de rotação Y global
+    rotY: 0,           // ângulo de rotação Y global (auto + scroll)
     rotX: -0.12,       // leve inclinação fixa no X
+    scrollProgress: 0, // 0..1, posição de scroll da página
+    scrollRotX: 0,     // inclinação extra no X vinda do scroll
     mouseX: 0,
     mouseY: 0,
     mouseInside: false,
@@ -246,6 +253,7 @@ export function Constellation3D({
       const rect = canvas.getBoundingClientRect()
       canvas.width = rect.width * state.dpr
       canvas.height = rect.height * state.dpr
+      ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.scale(state.dpr, state.dpr)
     }
     resize()
@@ -253,6 +261,19 @@ export function Constellation3D({
     ro.observe(canvas)
 
     initParticles()
+
+    // Scroll → rotação extra + leve inclinação, suavizados
+    const onScroll = () => {
+      if (!reactToScroll) return
+      const doc = document.documentElement
+      const maxScroll = Math.max(doc.scrollHeight - window.innerHeight, 1)
+      const progress = Math.min(Math.max(window.scrollY / maxScroll, 0), 1)
+      state.scrollProgress = progress
+    }
+    if (reactToScroll) {
+      window.addEventListener("scroll", onScroll, { passive: true })
+      onScroll()
+    }
 
     // Mouse
     const onMouseMove = (e: MouseEvent) => {
@@ -284,22 +305,30 @@ export function Constellation3D({
       lastTime = ts
       state.time += dt
 
-      const W = canvas.getBoundingClientRect().width
-      const H = canvas.getBoundingClientRect().height
+      const rect = canvas.getBoundingClientRect()
+      const W = rect.width
+      const H = rect.height
       const cx = W / 2
       const cy = H / 2
       const scale = Math.min(W, H) * 0.38
 
-      // Rotação automática suave
+      // Suaviza a rotação/inclinação vindas do scroll (lerp)
+      const targetScrollRotY = state.scrollProgress * Math.PI * 2 * scrollRotationTurns
+      const targetScrollRotX = state.scrollProgress * 0.5 - 0.25
+      state.scrollRotX += (targetScrollRotX - state.scrollRotX) * 0.06
+
+      // Rotação automática suave + contribuição do scroll
       state.rotY += dt * 0.18
+      const totalRotY = state.rotY + targetScrollRotY
+      const totalRotX = state.rotX + state.scrollRotX
 
       ctx.clearRect(0, 0, W, H)
 
       // Pré-calcular senos/cossenos da rotação global
-      const cosY = Math.cos(state.rotY)
-      const sinY = Math.sin(state.rotY)
-      const cosX = Math.cos(state.rotX)
-      const sinX = Math.sin(state.rotX)
+      const cosY = Math.cos(totalRotY)
+      const sinY = Math.sin(totalRotY)
+      const cosX = Math.cos(totalRotX)
+      const sinX = Math.sin(totalRotX)
 
       // Repulsão do mouse
       const mouseRepulseRadius = scale * 0.35
@@ -402,12 +431,13 @@ export function Constellation3D({
     return () => {
       cancelAnimationFrame(state.animId)
       ro.disconnect()
+      if (reactToScroll) window.removeEventListener("scroll", onScroll)
       canvas.removeEventListener("mousemove", onMouseMove)
       canvas.removeEventListener("mouseleave", onMouseLeave)
       canvas.removeEventListener("touchmove", onTouchMove)
       canvas.removeEventListener("touchend", onMouseLeave)
     }
-  }, [initParticles])
+  }, [initParticles, reactToScroll, scrollRotationTurns])
 
   return (
     <canvas
