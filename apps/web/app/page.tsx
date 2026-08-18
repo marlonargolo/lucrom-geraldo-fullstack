@@ -1,629 +1,737 @@
 import Link from "next/link"
-import {
-  ArrowRight,
-  Zap,
-  ShieldCheck,
-  QrCode,
-  Send,
-  Wand2,
-  Share2,
-  Check,
-  MessageSquareText,
-  Sparkles,
-  CalendarClock,
-  Store,
-  Scissors,
-  ShoppingBag,
-  Wrench,
-  ShoppingCart,
-  Users,
-  Star,
-  Mail,
-} from "lucide-react"
-import { HeroSlate } from "@/components/marketing/hero-slate"
+import { ArrowRight, Check, Mail } from "lucide-react"
+import { Constellation3D } from "@/components/marketing/constellation-3d"
 import { FaqAccordion, type FaqItem } from "@/components/marketing/faq-accordion"
-import { BrandMark } from "@/components/studio/brand-mark"
 
-// ─── Migração Visual — Light Theme ─────────────────────────────────────────
+// ─── Design System Override — Dala / Void ─────────────────────────────────
 //
-// Esta página é a mesma fanpage de antes, reestruturada visualmente pro
-// padrão SaaS claro pedido (ver Módulo de Migração Visual) e reorganizada no
-// tamanho da imagem de referência (nav com âncoras, nichos, "como funciona"
-// em cards, preços com plano em destaque, depoimentos, rodapé em colunas).
+// Este arquivo substitui completamente o design anterior (light SaaS) pelo
+// sistema visual Dala: void negro, constelação 3D de triângulos, tipografia
+// monolítica em 400 com hierarquia por escala, acento violet (#8052ff) e
+// amber (#ffb829). A paleta e os tokens são injetados inline via style tags
+// para não depender de mudanças no globals.css que afetariam o /studio.
 //
-// Nenhum dado novo foi inventado onde existe responsabilidade funcional —
-// todo CTA leva a um destino real (/studio, mailto:vendas@... — o mesmo
-// e-mail já usado em components/studio/quota-badge.tsx) e todo número de
-// plano vem das MESMAS constantes de antes, sincronizadas manualmente com
-// apps/api/src/usage/usage.service.ts (PLAN_QUOTA_LIMITS) e
-// apps/web/app/api/billing/checkout/route.ts (BILLING_PRO_PLAN_PRICE_CENTS).
-//
-// Duas diferenças deliberadas em relação à imagem de referência, registradas
-// aqui pra quem for revisar:
-//   1. A imagem mostra 4 planos; o backend só tem 3 tiers reais (CREATOR
-//      grátis, PRO pago com checkout, ENTERPRISE sem preço fixo — "fale com
-//      o time"). Em vez de inventar 2 planos com botão de assinar que não
-//      levaria a lugar nenhum, os 3 planos reais ganharam o mesmo tratamento
-//      visual (plano do meio em destaque, badge "Mais escolhido").
-//   2. Os depoimentos abaixo são PLACEHOLDER — não existe nenhum depoimento
-//      real no código ou banco. A seção já está pronta no layout final;
-//      troque `TESTIMONIALS` por depoimentos reais antes de publicar.
+// Números de plano — manter em sincronia manual com:
+//   apps/api/src/usage/usage.service.ts (PLAN_QUOTA_LIMITS)
+//   apps/web/app/api/billing/checkout/route.ts (BILLING_PRO_PLAN_PRICE_CENTS)
+// ─────────────────────────────────────────────────────────────────────────────
 
-// Números reais dos planos — mantenha em sincronia manual com
-// apps/api/src/usage/usage.service.ts (PLAN_QUOTA_LIMITS) e
-// apps/web/app/api/billing/checkout/route.ts (BILLING_PRO_PLAN_PRICE_CENTS).
-//
-// CORREÇÃO (auditoria financeira): este valor estava em 5, mas o backend
-// (PLAN_QUOTA_LIMITS.CREATOR em usage.service.ts) sempre limitou o plano
-// gratuito a 1 geração/mês — a landing prometia 4 gerações que o sistema
-// jamais entregaria. Ajustado para refletir a regra real de negócio.
 const PLAN_CREATOR_LIMIT = 1
 const PLAN_PRO_LIMIT = 100
 const PLAN_PRO_PRICE = "R$ 49,90"
 const PLAN_AVULSO_PRICE = "R$ 39,90"
 const PLAN_PACOTE5_PRICE = "R$ 179,90"
-// Mesmo e-mail de vendas usado em components/studio/quota-badge.tsx
-// (DEFAULT_UPGRADE_EMAIL) — mantenha os dois em sincronia manual.
-const SALES_EMAIL = "mailto:vendas@lucrom.studio?subject=Plano%20Ag%C3%AAncia%2FEmpresa%20-%20Lucrom%20Studio"
+const SALES_EMAIL =
+  "mailto:vendas@lucrom.studio?subject=Plano%20Ag%C3%AAncia%2FEmpresa%20-%20Lucrom%20Studio"
 
 const NAV_LINKS = [
-  { href: "#como-funciona", label: "Como funciona" },
+  { href: "#pipeline", label: "Pipeline" },
   { href: "#precos", label: "Preços" },
-  { href: "#faq", label: "Ajuda" },
+  { href: "#faq", label: "FAQ" },
 ] as const
 
-const NICHES = [
-  { icon: Store, label: "Restaurantes", detail: "Bares e lanchonetes" },
-  { icon: Scissors, label: "Salões", detail: "Beleza e estética" },
-  { icon: ShoppingBag, label: "Lojas", detail: "Comércio em geral" },
-  { icon: Wrench, label: "Serviços", detail: "Prestadores" },
-  { icon: ShoppingCart, label: "E-commerce", detail: "Loja virtual" },
-  { icon: Users, label: "Profissionais", detail: "Liberais" },
-] as const
-
-// Mesmos 3 passos reais de antes — só ganharam o tratamento visual de card
-// numerado com conector, no lugar da lista corrida.
-const STEPS = [
+const PIPELINE_STEPS = [
   {
-    number: "1",
-    label: "VOCÊ DIZ O QUE VENDE",
-    title: "Duas frases, não um briefing",
-    body: "Tipo de negócio e oferta. “Hamburgueria artesanal”, “Combo R$25”. Só isso — sem formulário longo, sem enviar foto, sem esperar orçamento.",
-    icon: MessageSquareText,
-    accent: "green",
+    number: "01",
+    label: "BRIEFING",
+    headline: "Duas frases.",
+    body: "Tipo de negócio e oferta. Nada mais. O sistema lê, interpreta contexto e seleciona o modelo generativo certo.",
+    accent: "#8052ff",
   },
   {
-    number: "2",
-    label: "A IA ESCREVE O ROTEIRO",
-    title: "Gancho, oferta e chamada prontos",
-    body: "Uma única chamada de IA devolve o gancho de impacto, a apresentação da oferta e a chamada para ação — já no formato certo pros primeiros segundos de um Reels.",
-    icon: Sparkles,
-    accent: "purple",
+    number: "02",
+    label: "IA GERA",
+    headline: "Gancho, roteiro, vídeo.",
+    body: "Pipeline M8 em quatro etapas: transcrição word-level, isolamento vocal, matting de fundo e geração de imagem por nicho. Tudo assíncrono.",
+    accent: "#ffb829",
   },
   {
-    number: "3",
-    label: "O VÍDEO VAI PRO INSTAGRAM",
-    title: "Publicado, não só baixado",
-    body: "O Reels é gerado e publicado direto na sua conta do Instagram — você revisa a legenda antes, mas não precisa exportar, salvar e subir na mão.",
-    icon: CalendarClock,
-    accent: "blue",
+    number: "03",
+    label: "PUBLICAÇÃO",
+    headline: "Direto no Instagram.",
+    body: "Graph API oficial da Meta. Você revisa a legenda, aprova — o sistema publica. Sem exportar, sem abrir o app.",
+    accent: "#15846e",
   },
 ] as const
-
-const ACCENT_CLASSES: Record<string, string> = {
-  green: "bg-primary/10 text-primary",
-  purple: "bg-(--lucrom-purple)/10 text-(--lucrom-purple)",
-  blue: "bg-(--lucrom-blue)/10 text-(--lucrom-blue)",
-}
 
 const FEATURES = [
   {
-    icon: Zap,
-    title: "Nunca fica parado sem gerar",
-    body: "Se o provedor de IA pago estiver fora do ar, o sistema cai automaticamente para um modelo gratuito — você sempre sai com um anúncio pronto.",
+    tag: "RESILIÊNCIA",
+    headline: "Circuit breaker automático.",
+    body: "Kling AI primário, MiniMax como fallback. Se um cai, o outro assume sem latência visível.",
   },
   {
-    icon: ShieldCheck,
-    title: "Você vê exatamente quanto usou",
-    body: "Um contador simples mostra suas gerações do mês em tempo real. Sem letra miúda, sem descobrir o limite só quando ele estoura.",
+    tag: "TRANSPARÊNCIA",
+    headline: "Contador em tempo real.",
+    body: "Você vê exatamente quantas gerações usou no mês. Sem surpresa de limite estourado.",
   },
   {
-    icon: Share2,
-    title: "Publicação de verdade, não só exportação",
-    body: "Integração direta com a Graph API do Instagram — o vídeo sai do Lucrom Studio e entra no seu perfil, com as três etapas de publicação conferidas.",
+    tag: "PUBLICAÇÃO",
+    headline: "API oficial, não scraping.",
+    body: "Integração direta com Meta Graph API — aprovada, estável e sem risco de ban de conta.",
   },
   {
-    icon: QrCode,
-    title: "PIX ou cartão, sem burocracia",
-    body: "Upgrade de plano com QR Code na hora ou link de pagamento seguro. Sem contrato, sem ligação de vendedor.",
-  },
-] as const
-
-// PLACEHOLDER — nenhum depoimento real existe hoje no código/banco. Troque
-// por depoimentos reais (com autorização do cliente) antes de publicar.
-const TESTIMONIALS = [
-  {
-    name: "Carlos",
-    role: "Hamburgueria · Belo Horizonte, MG",
-    quote: "Em uma semana já vi diferença nas vendas. Os vídeos ficam profissionais e é muito fácil de usar.",
-  },
-  {
-    name: "Ana",
-    role: "Salão de beleza · Curitiba, PR",
-    quote: "É como ter uma agência, mas por um preço que cabe no meu bolso.",
-  },
-  {
-    name: "Marina",
-    role: "Loja de roupas · São Paulo, SP",
-    quote: "Parei de perder tempo. A IA faz o trabalho pesado e eu só colho os resultados.",
+    tag: "PAGAMENTO",
+    headline: "PIX ou cartão.",
+    body: "QR Code gerado na hora via Mercado Pago. Upgrade em menos de 60 segundos.",
   },
 ] as const
 
 const FAQ: FaqItem[] = [
   {
-    question: "Preciso saber editar vídeo ou programar?",
+    question: "Preciso saber editar vídeo?",
     answer:
-      "Não. Você digita o tipo de negócio e a oferta, e o Lucrom Studio cuida do roteiro, das imagens e da montagem do vídeo.",
+      "Não. Você escreve o que vende e o pipeline cuida de roteiro, imagens e montagem. O resultado chega pronto para publicar.",
   },
   {
-    question: "E se eu não gostar do texto que a IA escreveu?",
+    question: "E se eu não gostar do texto gerado?",
     answer:
-      "Você pode editar o gancho, a oferta e a chamada livremente antes de gerar o vídeo final — a IA dá o ponto de partida, a palavra final é sua.",
+      "Edite antes de confirmar. A IA dá o ponto de partida — gancho, oferta e chamada — mas a palavra final é sempre sua.",
   },
   {
-    question: "Preciso configurar alguma chave de API pra usar?",
+    question: "Preciso configurar chave de API?",
     answer:
-      "Não. O plano gratuito já funciona sem nenhuma configuração — o sistema usa um provedor de IA gratuito por padrão.",
+      "Não. O plano gratuito funciona sem nenhuma configuração. O sistema usa nossos provedores de IA diretamente.",
   },
   {
-    question: "Vocês publicam automaticamente ou eu que subo o vídeo?",
-    answer:
-      "O Lucrom Studio publica direto na sua conta do Instagram através da API oficial da Meta. Você revisa antes de publicar.",
-  },
-  {
-    question: "Como funciona o pagamento do plano PRO?",
-    answer: `Via Mercado Pago, direto na plataforma — PIX com QR Code na hora ou cartão de crédito. ${PLAN_PRO_PRICE}/mês por ${PLAN_PRO_LIMIT} gerações.`,
+    question: "Como funciona o pagamento?",
+    answer: `Via Mercado Pago — PIX com QR Code ou cartão de crédito. Plano PRO custa ${PLAN_PRO_PRICE}/mês por ${PLAN_PRO_LIMIT} gerações.`,
   },
   {
     question: "Funciona para qualquer tipo de negócio?",
     answer:
-      "Sim. Hamburgueria, salão de beleza, eletricista, qualquer MEI que precise anunciar uma oferta específica de forma rápida.",
+      "Sim. Qualquer MEI com oferta específica: hamburguerias, salões, eletricistas, lojas, profissionais liberais.",
   },
 ]
 
 export default function LandingPage() {
   return (
-    <div className="lucrom-light min-h-screen bg-background text-foreground">
-      {/* ─── Nav ─── */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3.5 sm:px-6">
-          <BrandMark />
+    <>
+      {/* ─── CSS Tokens locais (não afetam o /studio) ─── */}
+      <style>{`
+        .void-page {
+          --void: #000000;
+          --bone: #ffffff;
+          --ash: #9a9a9a;
+          --mist: #bdbdbd;
+          --iris: #8052ff;
+          --amber: #ffb829;
+          --verdant: #15846e;
+          --font-neo: 'Inter', ui-sans-serif, system-ui, sans-serif;
+          background: var(--void);
+          color: var(--bone);
+          font-family: var(--font-neo);
+        }
+        .void-page * { box-sizing: border-box; }
 
-          <nav className="ml-2 hidden items-center gap-6 md:flex">
+        /* Typography scale */
+        .t-display   { font-size: clamp(56px, 8vw, 113px); line-height: 1.05; letter-spacing: -0.04em; font-weight: 400; }
+        .t-heading-lg{ font-size: clamp(42px, 6vw, 78px);  line-height: 1.08; letter-spacing: -0.04em; font-weight: 400; }
+        .t-heading   { font-size: clamp(32px, 4.5vw, 48px); line-height: 1.1; letter-spacing: -0.03em; font-weight: 400; }
+        .t-subheading{ font-size: clamp(24px, 3vw, 36px);  line-height: 1.2; letter-spacing: -0.02em; font-weight: 400; }
+        .t-body      { font-size: 18px; line-height: 1.6; font-weight: 200; }
+        .t-nav       { font-size: 14px; line-height: 1.2; letter-spacing: 0.025em; font-weight: 600; text-transform: uppercase; }
+        .t-label     { font-size: 12px; line-height: 1.2; letter-spacing: 0.025em; font-weight: 600; text-transform: uppercase; }
+
+        /* Button */
+        .btn-iris {
+          display: inline-flex; align-items: center; gap: 8px;
+          background: var(--iris); color: #fff; border: none;
+          border-radius: 9999px; padding: 14px 28px;
+          font-family: var(--font-neo); font-size: 14px; font-weight: 600;
+          letter-spacing: 0.025em; text-transform: uppercase; text-decoration: none;
+          transition: opacity 0.15s; cursor: pointer;
+        }
+        .btn-iris:hover { opacity: 0.85; }
+
+        /* Divider */
+        .void-divider { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 0; }
+
+        /* Nav */
+        .void-nav {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+          display: flex; align-items: center; padding: 20px 40px;
+          background: rgba(0,0,0,0.72); backdrop-filter: blur(16px);
+        }
+        @media(max-width:640px){ .void-nav{ padding: 16px 20px; } }
+
+        /* Seções */
+        .void-section {
+          max-width: 1280px; margin: 0 auto; padding: 0 40px;
+        }
+        @media(max-width:640px){ .void-section{ padding: 0 20px; } }
+      `}</style>
+
+      <div className="void-page" style={{ minHeight: "100vh" }}>
+
+        {/* ─── Navigation ─── */}
+        <nav className="void-nav">
+          {/* Logo */}
+          <span className="t-nav" style={{ color: "var(--bone)", letterSpacing: "0.1em" }}>
+            LUCROM<span style={{ color: "var(--iris)" }}>.</span>
+          </span>
+
+          {/* Links */}
+          <div style={{ display: "flex", gap: 32, marginLeft: 48 }} className="hidden md:flex">
             {NAV_LINKS.map((l) => (
-              <a key={l.href} href={l.href} className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              <a
+                key={l.href}
+                href={l.href}
+                className="t-nav"
+                style={{ color: "var(--ash)", textDecoration: "none", transition: "color 0.15s" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bone)")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ash)")}
+              >
                 {l.label}
               </a>
             ))}
-          </nav>
+          </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            <Link
-              href="/studio"
-              className="hidden items-center rounded-lg border border-border px-3.5 py-2 text-sm font-semibold text-foreground hover:bg-secondary sm:inline-flex"
-            >
-              Entrar
-            </Link>
-            <Link
-              href="/studio"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
-            >
-              Comece grátis
+          <div style={{ marginLeft: "auto" }}>
+            <Link href="/studio" className="btn-iris" style={{ padding: "10px 20px", fontSize: 13 }}>
+              Entrar no Studio
             </Link>
           </div>
-        </div>
-      </header>
+        </nav>
 
-      {/* ─── Hero ─── */}
-      <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pb-24 sm:pt-20">
-        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <span className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
-              <Sparkles className="h-3 w-3" aria-hidden />
-              Para MEI que vende de verdade
-            </span>
-            <h1 className="font-display text-4xl font-bold leading-[1.08] tracking-tight text-balance text-foreground sm:text-5xl">
-              O anúncio que seu concorrente <span className="text-primary">não fez</span> esta semana.
-            </h1>
-            <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground text-pretty">
-              Você digita o que vende. A IA escreve o gancho, gera o vídeo e publica no seu Instagram — sem
-              agência, sem editor de vídeo, sem gastar rios de dinheiro.
+        {/* ─── Hero ─── */}
+        <section
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            minHeight: "100vh",
+            maxWidth: 1280,
+            margin: "0 auto",
+            padding: "0 40px",
+            alignItems: "center",
+            gap: 60,
+          }}
+        >
+          {/* Coluna esquerda — copy */}
+          <div style={{ paddingTop: 100 }}>
+            <p
+              className="t-label"
+              style={{ color: "var(--amber)", marginBottom: 24 }}
+            >
+              Studio AI · Pipeline M8
             </p>
 
-            <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-muted-foreground">
-              <li className="flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
-                Sem cartão de crédito
-              </li>
-              <li className="flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
-                Sem editar vídeo na mão
-              </li>
-              <li className="flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
-                Publica direto no Instagram
-              </li>
-            </ul>
+            <h1 className="t-display" style={{ color: "var(--bone)", marginBottom: 32 }}>
+              Seu anúncio gerado,{" "}
+              <span style={{ color: "var(--iris)" }}>publicado</span>{" "}
+              em minutos.
+            </h1>
 
-            <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <Link
-                href="/studio"
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:opacity-90"
-              >
-                Criar meu primeiro anúncio grátis
-                <ArrowRight className="h-4 w-4" aria-hidden />
+            <p
+              className="t-body"
+              style={{ color: "var(--mist)", maxWidth: 460, marginBottom: 40 }}
+            >
+              Você diz o que vende. O pipeline de IA escreve o roteiro, gera o vídeo
+              e publica direto no Instagram — sem agência, sem editor, sem esperar.
+            </p>
+
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+              <Link href="/studio" className="btn-iris">
+                Criar anúncio grátis
+                <ArrowRight size={16} />
               </Link>
               <a
-                href="#como-funciona"
-                className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
+                href="#pipeline"
+                className="t-nav"
+                style={{ color: "var(--ash)", textDecoration: "none" }}
               >
-                Ver como funciona
+                Ver pipeline →
               </a>
             </div>
-            <p className="mt-4 font-mono text-[11px] text-muted-foreground">
-              {PLAN_CREATOR_LIMIT} vídeo grátis por mês · sem cartão de crédito
+
+            <p className="t-label" style={{ color: "var(--ash)", marginTop: 28, opacity: 0.6 }}>
+              {PLAN_CREATOR_LIMIT} vídeo grátis/mês · sem cartão de crédito
             </p>
           </div>
 
-          <HeroSlate />
-        </div>
-      </section>
+          {/* Coluna direita — constelação 3D */}
+          <div
+            style={{
+              height: "clamp(400px, 60vh, 700px)",
+              position: "relative",
+            }}
+          >
+            <Constellation3D
+              particleCount={1800}
+              ambientCount={220}
+              className="w-full h-full"
+            />
+          </div>
+        </section>
 
-      {/* ─── Nichos ─── */}
-      <section className="border-t border-border bg-secondary/60">
-        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-          <p className="mb-6 text-center font-display text-sm font-bold text-foreground sm:text-left">
-            Feito para quem faz o Brasil acontecer.
+        {/* Mobile: constelação embaixo do hero copy (col-1 em mobile) */}
+        <style>{`
+          @media(max-width:860px){
+            section[data-hero] {
+              grid-template-columns: 1fr !important;
+              padding-top: 100px !important;
+            }
+          }
+        `}</style>
+
+        <hr className="void-divider" />
+
+        {/* ─── Pipeline ─── */}
+        <section
+          id="pipeline"
+          className="void-section"
+          style={{ paddingTop: 120, paddingBottom: 120 }}
+        >
+          <p className="t-label" style={{ color: "var(--amber)", marginBottom: 20 }}>
+            Como funciona
           </p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            {NICHES.map((n) => (
-              <div
-                key={n.label}
-                className="flex items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2.5"
-              >
-                <n.icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-foreground">{n.label}</p>
-                  <p className="truncate text-[10px] text-muted-foreground">{n.detail}</p>
+          <h2 className="t-heading-lg" style={{ maxWidth: 620, marginBottom: 80 }}>
+            Três etapas.<br />
+            <span style={{ color: "var(--ash)" }}>Do briefing ao Instagram.</span>
+          </h2>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: 60,
+            }}
+          >
+            {PIPELINE_STEPS.map((step) => (
+              <div key={step.number} style={{ borderTop: `1px solid ${step.accent}`, paddingTop: 24 }}>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 16, marginBottom: 20 }}>
+                  <span
+                    className="t-display"
+                    style={{ color: step.accent, opacity: 0.25, lineHeight: 1, fontSize: "clamp(40px, 5vw, 64px)" }}
+                  >
+                    {step.number}
+                  </span>
+                  <span className="t-label" style={{ color: step.accent }}>
+                    {step.label}
+                  </span>
                 </div>
+                <h3 className="t-subheading" style={{ marginBottom: 16 }}>
+                  {step.headline}
+                </h3>
+                <p className="t-body" style={{ color: "var(--ash)", fontSize: 16 }}>
+                  {step.body}
+                </p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ─── Como funciona ─── */}
-      <section id="como-funciona" className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-        <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Como funciona</h2>
-        <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-          As mesmas três etapas que rodam por trás de cada anúncio gerado na plataforma.
-        </p>
+        <hr className="void-divider" />
 
-        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          {STEPS.map((step) => (
-            <div key={step.number} className="relative rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <div
-                className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${ACCENT_CLASSES[step.accent]}`}
-              >
-                <step.icon className="h-5 w-5" aria-hidden />
-              </div>
-              <div className="mb-2 flex items-baseline gap-2 font-mono text-[11px] text-muted-foreground">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[10px] font-bold text-foreground">
-                  {step.number}
-                </span>
-                <span>{step.label}</span>
-              </div>
-              <h3 className="font-display text-base font-semibold text-foreground">{step.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ─── Recursos ─── */}
-      <section className="border-t border-border bg-secondary/40">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Feito pra rodar todo mês, sem drama
+        {/* ─── Features ─── */}
+        <section
+          className="void-section"
+          style={{ paddingTop: 120, paddingBottom: 120 }}
+        >
+          <h2 className="t-heading" style={{ marginBottom: 80, maxWidth: 500 }}>
+            Feito pra rodar todo mês,{" "}
+            <span style={{ color: "var(--ash)" }}>sem drama.</span>
           </h2>
-          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+              gap: "1px",
+              background: "rgba(255,255,255,0.06)",
+            }}
+          >
             {FEATURES.map((f) => (
-              <div key={f.title} className="flex gap-4 rounded-2xl border border-border bg-card p-5 shadow-sm">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-(--lucrom-blue)/10 text-(--lucrom-blue)">
-                  <f.icon className="h-4.5 w-4.5" aria-hidden />
-                </div>
-                <div>
-                  <h3 className="font-display text-sm font-semibold text-foreground">{f.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{f.body}</p>
-                </div>
+              <div
+                key={f.tag}
+                style={{
+                  background: "var(--void)",
+                  padding: "40px 36px",
+                }}
+              >
+                <p className="t-label" style={{ color: "var(--iris)", marginBottom: 16 }}>
+                  {f.tag}
+                </p>
+                <h3 style={{ fontSize: 20, fontWeight: 400, marginBottom: 12, lineHeight: 1.3 }}>
+                  {f.headline}
+                </h3>
+                <p className="t-body" style={{ color: "var(--ash)", fontSize: 15 }}>
+                  {f.body}
+                </p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ─── Depoimentos (PLACEHOLDER — ver comentário no topo do arquivo) ─── */}
-      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-        <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Quem usa, recomenda.
-        </h2>
-        <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-          Histórias reais de quem já está vendendo mais com o Lucrom.
-        </p>
-        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          {TESTIMONIALS.map((t) => (
-            <div key={t.name} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <div className="mb-3 flex gap-0.5 text-warning">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star key={i} className="h-3.5 w-3.5 fill-current" aria-hidden />
-                ))}
-              </div>
-              <p className="text-sm leading-relaxed text-foreground">“{t.quote}”</p>
-              <div className="mt-4">
-                <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                <p className="text-xs text-muted-foreground">{t.role}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+        <hr className="void-divider" />
 
-      {/* ─── Preço ───
-       * 5 ofertas reais: 3 planos (CREATOR/PRO/ENTERPRISE) + 2 compras
-       * avulsas sem assinatura (AVULSO 1 vídeo, PACOTE5 5 vídeos) — ver
-       * apps/api/src/billing/one-off-products.ts para os valores/produtos
-       * validados no backend (nunca confiar no preço vindo do cliente). */}
-      <section id="precos" className="border-t border-border bg-secondary/40">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Preço simples, sem crédito misterioso
+        {/* ─── Preços ─── */}
+        <section
+          id="precos"
+          className="void-section"
+          style={{ paddingTop: 120, paddingBottom: 120 }}
+        >
+          <p className="t-label" style={{ color: "var(--amber)", marginBottom: 20 }}>
+            Preço
+          </p>
+          <h2 className="t-heading-lg" style={{ marginBottom: 16 }}>
+            Simples.
           </h2>
-          <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-            Um número de gerações por mês. Sem tabela de créditos por segundo de vídeo.
+          <p className="t-body" style={{ color: "var(--ash)", marginBottom: 80 }}>
+            Um número de gerações por mês. Sem crédito misterioso.
           </p>
 
-          <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "1px",
+              background: "rgba(255,255,255,0.06)",
+            }}
+          >
             {/* Grátis */}
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Grátis</p>
-              <p className="mt-2 font-display text-3xl font-bold text-foreground">R$ 0</p>
-              <ul className="mt-5 space-y-2.5 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  {PLAN_CREATOR_LIMIT} vídeo de IA por mês
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  Publicação direta no Instagram
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  Sem cartão de crédito
-                </li>
-              </ul>
-              <Link
-                href="/studio"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
-              >
-                Começar grátis
-              </Link>
-            </div>
+            <PricingCard
+              tier="GRÁTIS"
+              price="R$ 0"
+              highlight={false}
+              items={[
+                `${PLAN_CREATOR_LIMIT} vídeo de IA por mês`,
+                "Publicação direta no Instagram",
+                "Sem cartão de crédito",
+              ]}
+              cta={{ label: "Começar grátis", href: "/studio" }}
+            />
 
-            {/* Avulso — compra de 1 vídeo extra sem assinatura */}
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Avulso</p>
-              <p className="mt-2 font-display text-3xl font-bold text-foreground">
-                {PLAN_AVULSO_PRICE}
-                <span className="text-base font-medium text-muted-foreground">/vídeo</span>
+            {/* Avulso */}
+            <PricingCard
+              tier="AVULSO"
+              price={PLAN_AVULSO_PRICE}
+              priceSuffix="/vídeo"
+              highlight={false}
+              items={[
+                "1 vídeo extra, sem assinatura",
+                "Usa quando o grátis acabar",
+                "PIX ou cartão",
+              ]}
+              cta={{ label: "Comprar 1 vídeo", href: "/studio?buy=avulso" }}
+            />
+
+            {/* Pacote 5 */}
+            <PricingCard
+              tier="PACOTE 5"
+              price={PLAN_PACOTE5_PRICE}
+              priceSuffix="/pacote"
+              highlight={false}
+              items={[
+                "5 vídeos de até 60 segundos",
+                "Créditos não expiram no mês",
+                "Compra única, sem assinatura",
+              ]}
+              cta={{ label: "Comprar pacote", href: "/studio?buy=pacote5" }}
+            />
+
+            {/* PRO — destaque */}
+            <PricingCard
+              tier="PRO"
+              price={PLAN_PRO_PRICE}
+              priceSuffix="/mês"
+              highlight={true}
+              badge="Mais escolhido"
+              items={[
+                `${PLAN_PRO_LIMIT} gerações de IA por mês`,
+                "Publicação direta no Instagram",
+                "Cancele quando quiser",
+              ]}
+              cta={{ label: "Assinar Pro", href: "/studio" }}
+            />
+
+            {/* Enterprise */}
+            <div style={{ background: "var(--void)", padding: "40px 36px" }}>
+              <p className="t-label" style={{ color: "var(--verdant)", marginBottom: 20 }}>
+                AGÊNCIA / EMPRESA
               </p>
-              <ul className="mt-5 space-y-2.5 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  1 vídeo extra, sem assinatura
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  Usa quando seu grátis do mês acabar
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  PIX ou cartão, sem compromisso
-                </li>
-              </ul>
-              <Link
-                href="/studio?buy=avulso"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
+              <p
+                style={{
+                  fontSize: "clamp(28px, 4vw, 40px)",
+                  fontWeight: 400,
+                  letterSpacing: "-0.02em",
+                  marginBottom: 24,
+                  lineHeight: 1.1,
+                }}
               >
-                Comprar 1 vídeo
-              </Link>
-            </div>
-
-            {/* Pacote 5 — 5 vídeos de 60s, compra única */}
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">Pacote 5 vídeos</p>
-              <p className="mt-2 font-display text-3xl font-bold text-foreground">
-                {PLAN_PACOTE5_PRICE}
-                <span className="text-base font-medium text-muted-foreground">/pacote</span>
+                Sob consulta
               </p>
-              <ul className="mt-5 space-y-2.5 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  5 vídeos de até 60 segundos
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  Créditos não expiram no mês
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
-                  Compra única, sem assinatura
-                </li>
+              <ul style={{ listStyle: "none", padding: 0, margin: "0 0 32px", display: "flex", flexDirection: "column", gap: 10 }}>
+                {["Volume alto de gerações", "Múltiplas marcas/contas", "Suporte dedicado"].map((item) => (
+                  <li key={item} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Check size={14} color="var(--verdant)" />
+                    <span style={{ color: "var(--ash)", fontSize: 15 }}>{item}</span>
+                  </li>
+                ))}
               </ul>
-              <Link
-                href="/studio?buy=pacote5"
-                className="mt-6 inline-flex w-full items-center justify-center rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-secondary"
-              >
-                Comprar pacote
-              </Link>
-            </div>
-
-            {/* Pro — plano recomendado, roxo */}
-            <div className="relative rounded-2xl border-2 border-(--lucrom-purple) bg-card p-6 shadow-lg shadow-(--lucrom-purple)/10">
-              <span className="absolute -top-3 left-6 rounded-full bg-(--lucrom-purple) px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                Mais escolhido
-              </span>
-              <p className="font-mono text-[11px] uppercase tracking-widest text-(--lucrom-purple)">Pro</p>
-              <p className="mt-2 font-display text-3xl font-bold text-foreground">
-                {PLAN_PRO_PRICE}
-                <span className="text-base font-medium text-muted-foreground">/mês</span>
-              </p>
-              <ul className="mt-5 space-y-2.5 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-(--lucrom-purple)" aria-hidden />
-                  {PLAN_PRO_LIMIT} gerações de IA por mês
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-(--lucrom-purple)" aria-hidden />
-                  Publicação direta no Instagram
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-(--lucrom-purple)" aria-hidden />
-                  PIX ou cartão, cancele quando quiser
-                </li>
-              </ul>
-              <Link
-                href="/studio"
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-(--lucrom-purple) px-4 py-2.5 text-sm font-semibold text-white hover:bg-(--lucrom-purple-vivid)"
-              >
-                <Wand2 className="h-4 w-4" aria-hidden />
-                Assinar Pro
-              </Link>
-            </div>
-
-            {/* Enterprise — fala com o time, azul */}
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <p className="font-mono text-[11px] uppercase tracking-widest text-(--lucrom-blue)">Agência / Empresa</p>
-              <p className="mt-2 font-display text-3xl font-bold text-foreground">Sob consulta</p>
-              <ul className="mt-5 space-y-2.5 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-(--lucrom-blue)" aria-hidden />
-                  Volume alto de gerações por mês
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-(--lucrom-blue)" aria-hidden />
-                  Múltiplas marcas/contas
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 shrink-0 text-(--lucrom-blue)" aria-hidden />
-                  Suporte dedicado
-                </li>
-              </ul>
-              <a
-                href={SALES_EMAIL}
-                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-(--lucrom-blue) px-4 py-2.5 text-sm font-semibold text-(--lucrom-blue) hover:bg-(--lucrom-blue)/5"
-              >
-                <Mail className="h-4 w-4" aria-hidden />
+              <a href={SALES_EMAIL} className="t-nav" style={{ color: "var(--verdant)", textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
+                <Mail size={14} />
                 Falar com o time
               </a>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ─── FAQ ─── */}
-      <section id="faq" className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24">
-        <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Perguntas frequentes
-        </h2>
-        <div className="mt-8">
-          <FaqAccordion items={FAQ} />
-        </div>
-      </section>
+        <hr className="void-divider" />
 
-      {/* ─── CTA final ─── */}
-      <section className="border-t border-border bg-secondary/60">
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-4 py-16 sm:px-6 sm:py-24">
-          <h2 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Seu próximo anúncio pode estar pronto em 3 minutos.
+        {/* ─── FAQ ─── */}
+        <section
+          id="faq"
+          className="void-section"
+          style={{ paddingTop: 120, paddingBottom: 120, maxWidth: 800 }}
+        >
+          <p className="t-label" style={{ color: "var(--amber)", marginBottom: 20 }}>
+            FAQ
+          </p>
+          <h2 className="t-heading" style={{ marginBottom: 60 }}>
+            Perguntas frequentes.
           </h2>
-          <Link
-            href="/studio"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm shadow-primary/20 hover:opacity-90"
-          >
-            <Send className="h-4 w-4" aria-hidden />
-            Criar meu primeiro anúncio grátis
-          </Link>
-        </div>
-      </section>
+          {/* FaqAccordion com override de cores para o tema void */}
+          <style>{`
+            .void-faq [data-radix-accordion-item],
+            .void-faq details {
+              border-color: rgba(255,255,255,0.07) !important;
+            }
+            .void-faq [data-radix-accordion-trigger],
+            .void-faq summary {
+              color: var(--bone) !important;
+              font-weight: 400 !important;
+              font-size: 16px !important;
+            }
+            .void-faq [data-radix-accordion-content] p,
+            .void-faq [data-radix-accordion-content],
+            .void-faq details p {
+              color: var(--ash) !important;
+              font-weight: 200 !important;
+            }
+          `}</style>
+          <div className="void-faq">
+            <FaqAccordion items={FAQ} />
+          </div>
+        </section>
 
-      {/* ─── Rodapé ───
-       * Propositalmente escuro (ver Módulo de Migração Visual, seção 9) —
-       * cria contraste com o resto da página clara. Só links reais: âncoras
-       * da própria página, /studio e o e-mail de vendas. Sem ícone de rede
-       * social — não existe nenhum perfil oficial cadastrado no código pra
-       * linkar de verdade. */}
-      <footer className="bg-(--lucrom-footer-bg) text-white/70">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
-            <div className="col-span-2 sm:col-span-1">
-              <span className="font-display text-sm font-bold tracking-tight text-white">
-                LUCROM <span className="text-primary">Studio</span>
-              </span>
-              <p className="mt-2 text-xs leading-relaxed text-white/50">
-                Marketing inteligente para o MEI brasileiro.
+        <hr className="void-divider" />
+
+        {/* ─── CTA Final ─── */}
+        <section
+          className="void-section"
+          style={{ paddingTop: 120, paddingBottom: 140, textAlign: "left" }}
+        >
+          <p className="t-label" style={{ color: "var(--amber)", marginBottom: 24 }}>
+            Comece agora
+          </p>
+          <h2 className="t-heading-lg" style={{ maxWidth: 640, marginBottom: 48 }}>
+            Seu próximo anúncio pode estar pronto em{" "}
+            <span style={{ color: "var(--iris)" }}>3 minutos.</span>
+          </h2>
+          <Link href="/studio" className="btn-iris" style={{ fontSize: 15, padding: "16px 32px" }}>
+            Criar meu primeiro anúncio grátis
+            <ArrowRight size={18} />
+          </Link>
+        </section>
+
+        {/* ─── Footer ─── */}
+        <footer style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+          <div
+            className="void-section"
+            style={{ paddingTop: 60, paddingBottom: 60 }}
+          >
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                gap: 40,
+                marginBottom: 48,
+              }}
+            >
+              <div>
+                <p className="t-nav" style={{ color: "var(--bone)", marginBottom: 12 }}>
+                  LUCROM<span style={{ color: "var(--iris)" }}>.</span>
+                </p>
+                <p style={{ color: "var(--ash)", fontSize: 13, lineHeight: 1.6 }}>
+                  Marketing inteligente para o MEI brasileiro.
+                </p>
+              </div>
+
+              <div>
+                <p className="t-label" style={{ color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>
+                  Produto
+                </p>
+                <nav style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    { href: "#pipeline", label: "Como funciona" },
+                    { href: "#precos", label: "Preços" },
+                    { href: "/studio", label: "Entrar" },
+                  ].map((l) => (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      style={{ color: "var(--ash)", textDecoration: "none", fontSize: 14 }}
+                    >
+                      {l.label}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+
+              <div>
+                <p className="t-label" style={{ color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>
+                  Ajuda
+                </p>
+                <nav style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {[
+                    { href: "#faq", label: "Perguntas frequentes" },
+                    { href: SALES_EMAIL, label: "Falar com vendas" },
+                  ].map((l) => (
+                    <a
+                      key={l.href}
+                      href={l.href}
+                      style={{ color: "var(--ash)", textDecoration: "none", fontSize: 14 }}
+                    >
+                      {l.label}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+            </div>
+
+            <div
+              style={{
+                borderTop: "1px solid rgba(255,255,255,0.06)",
+                paddingTop: 24,
+                display: "flex",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 8,
+              }}
+            >
+              <p className="t-label" style={{ color: "rgba(255,255,255,0.2)" }}>
+                © {new Date().getFullYear()} Lucrom Studio
+              </p>
+              <p className="t-label" style={{ color: "rgba(255,255,255,0.2)" }}>
+                Feito para o MEI brasileiro
               </p>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/40">Produto</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li>
-                  <a href="#como-funciona" className="hover:text-white">
-                    Como funciona
-                  </a>
-                </li>
-                <li>
-                  <a href="#precos" className="hover:text-white">
-                    Preços
-                  </a>
-                </li>
-                <li>
-                  <Link href="/studio" className="hover:text-white">
-                    Entrar
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-white/40">Ajuda</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li>
-                  <a href="#faq" className="hover:text-white">
-                    Perguntas frequentes
-                  </a>
-                </li>
-                <li>
-                  <a href={SALES_EMAIL} className="hover:text-white">
-                    Falar com vendas
-                  </a>
-                </li>
-              </ul>
-            </div>
           </div>
-          <div className="mt-10 border-t border-white/10 pt-6 text-xs text-white/40">
-            © {new Date().getFullYear()} Lucrom Studio. Feito para o MEI brasileiro.
-          </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
+    </>
+  )
+}
+
+// ─── PricingCard ─────────────────────────────────────────────────────────────
+function PricingCard({
+  tier,
+  price,
+  priceSuffix,
+  highlight,
+  badge,
+  items,
+  cta,
+}: {
+  tier: string
+  price: string
+  priceSuffix?: string
+  highlight: boolean
+  badge?: string
+  items: string[]
+  cta: { label: string; href: string }
+}) {
+  return (
+    <div
+      style={{
+        background: highlight ? "rgba(128,82,255,0.06)" : "var(--void)",
+        padding: "40px 36px",
+        position: "relative",
+        borderTop: highlight ? "1px solid var(--iris)" : "none",
+      }}
+    >
+      {badge && (
+        <span
+          style={{
+            position: "absolute",
+            top: -12,
+            left: 36,
+            background: "var(--iris)",
+            color: "#fff",
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            padding: "4px 10px",
+            borderRadius: 9999,
+          }}
+        >
+          {badge}
+        </span>
+      )}
+
+      <p
+        className="t-label"
+        style={{ color: highlight ? "var(--iris)" : "var(--ash)", marginBottom: 20 }}
+      >
+        {tier}
+      </p>
+
+      <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 24 }}>
+        <span
+          style={{
+            fontSize: "clamp(28px, 4vw, 40px)",
+            fontWeight: 400,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.1,
+          }}
+        >
+          {price}
+        </span>
+        {priceSuffix && (
+          <span style={{ color: "var(--ash)", fontSize: 14 }}>{priceSuffix}</span>
+        )}
+      </div>
+
+      <ul
+        style={{
+          listStyle: "none",
+          padding: 0,
+          margin: "0 0 32px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        {items.map((item) => (
+          <li key={item} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Check size={14} color={highlight ? "var(--iris)" : "var(--ash)"} />
+            <span style={{ color: "var(--ash)", fontSize: 15 }}>{item}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Link
+        href={cta.href}
+        className={highlight ? "btn-iris" : ""}
+        style={
+          highlight
+            ? {}
+            : {
+                display: "inline-flex",
+                alignItems: "center",
+                color: "var(--ash)",
+                fontSize: 14,
+                fontWeight: 600,
+                textDecoration: "none",
+                letterSpacing: "0.025em",
+                textTransform: "uppercase",
+              }
+        }
+      >
+        {cta.label}
+      </Link>
     </div>
   )
 }
