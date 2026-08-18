@@ -173,18 +173,20 @@ export default function LandingPage() {
 
           {/* Links */}
           <div style={{ display: "flex", gap: 32, marginLeft: 48 }} className="hidden md:flex">
-            {NAV_LINKS.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="t-nav"
-                style={{ color: "var(--ash)", textDecoration: "none", transition: "color 0.15s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = "var(--bone)")}
-                onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ash)")}
-              >
-                {l.label}
-              </a>
-            ))}
+           {NAV_LINKS.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className="t-nav"
+                  style={{
+                    color: "var(--ash)",
+                    textDecoration: "none",
+                    transition: "color 0.15s",
+                  }}
+                >
+                  {l.label}
+                </a>
+              ))}
           </div>
 
           <div style={{ marginLeft: "auto" }}>
