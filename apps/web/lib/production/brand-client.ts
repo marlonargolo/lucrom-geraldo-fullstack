@@ -37,11 +37,11 @@ function currentTenantId(): string {
 }
 
 export const brandClient = {
-  list: (): Promise<BrandKit[]> => {
+  list: async (): Promise<BrandKit[]> => {
     const tenantId = currentTenantId()
     return apiFetch<BrandKit[]>(`/brand/brand-kits?tenant_id=${encodeURIComponent(tenantId)}`)
   },
-  create: (name: string): Promise<BrandKit> => {
+  create: async (name: string): Promise<BrandKit> => {
     const tenantId = currentTenantId()
     return apiFetch<BrandKit>("/brand/brand-kits", {
       method: "POST",

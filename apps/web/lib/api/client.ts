@@ -50,7 +50,7 @@ export class ApiError extends Error {
  * então "configurado" agora depende de sessão, não só de env var.
  */
 export function isApiConfigured(): boolean {
-  return Boolean(getSession());
+  return Boolean(getSession())   // true only if a session already exists
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {

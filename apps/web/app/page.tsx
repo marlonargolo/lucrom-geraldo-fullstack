@@ -822,7 +822,7 @@ export default function LandingPage() {
               <Reveal delay={0}>
                 <div>
                   <p className="t-nav" style={{ color: "var(--bone)", marginBottom: 12 }}>
-                    LUCROM<span style={{ color: "var(--iris)" }}>.</span>
+                    CRIATAI.<span style={{ color: "var(--iris)" }}>.</span>
                   </p>
                   <p style={{ color: "var(--ash)", fontSize: 13, lineHeight: 1.6 }}>
                     Marketing inteligente para o MEI brasileiro.

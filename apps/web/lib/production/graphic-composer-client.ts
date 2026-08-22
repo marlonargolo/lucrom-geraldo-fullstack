@@ -97,7 +97,7 @@ export interface ComposeGraphicInput {
 }
 
 export const graphicComposerClient = {
-  compose: (input: ComposeGraphicInput): Promise<GraphicComposition> => {
+  compose: async (input: ComposeGraphicInput): Promise<GraphicComposition> => {
     const tenantId = currentTenantId()
     return apiFetch<GraphicComposition>(`/api/v1/graphics/compose`, {
       method: "POST",
@@ -105,13 +105,13 @@ export const graphicComposerClient = {
     })
   },
 
-  get: (id: string): Promise<GraphicComposition> => {
+  get: async (id: string): Promise<GraphicComposition> => {
     const tenantId = currentTenantId()
     return apiFetch<GraphicComposition>(`/api/v1/graphics/${id}?tenantId=${encodeURIComponent(tenantId)}`)
   },
 
   /** Aplica ajustes determinísticos (fonte/cor/posição/opacidade/troca de ativo/visibilidade/texto). Nunca chama IA. */
-  updateLayers: (id: string, updates: LayerUpdate[], note?: string): Promise<GraphicComposition> => {
+  updateLayers: async (id: string, updates: LayerUpdate[], note?: string): Promise<GraphicComposition> => {
     const tenantId = currentTenantId()
     return apiFetch<GraphicComposition>(`/api/v1/graphics/${id}/layers`, {
       method: "PATCH",
@@ -120,7 +120,7 @@ export const graphicComposerClient = {
   },
 
   /** Restauração instantânea (não re-renderiza — reaproveita os assets já gerados daquela versão). */
-  restoreVersion: (id: string, version: number): Promise<GraphicComposition> => {
+  restoreVersion: async (id: string, version: number): Promise<GraphicComposition> => {
     const tenantId = currentTenantId()
     return apiFetch<GraphicComposition>(
       `/api/v1/graphics/${id}/restore/${version}?tenantId=${encodeURIComponent(tenantId)}`,
@@ -129,7 +129,7 @@ export const graphicComposerClient = {
   },
 
   /** Resolve um `media_assets.id` (ex.: um item de `output_asset_ids`) pra uma URL exibível. */
-  resolveAssetUrl: (assetId: string): Promise<string> => {
+  resolveAssetUrl: async (assetId: string): Promise<string> => {
     const tenantId = currentTenantId()
     return apiFetch<{ download_url: string }>(
       `/api/v1/media-assets/${assetId}?tenantId=${encodeURIComponent(tenantId)}`,
