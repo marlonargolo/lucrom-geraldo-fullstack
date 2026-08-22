@@ -1,12 +1,7 @@
-import { cn } from "@/lib/utils"
-
-export function BrandMark({ className }: { className?: string }) {
+export function BrandMark() {
   return (
-    <div className={cn("flex items-center gap-2.5", className)}>
-      <div className="">
-        <span className="" />
-      </div>
-      
+    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#7C5CFF] text-[10px] font-bold text-white">
+      L
     </div>
   )
 }

@@ -1,78 +1,78 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
-  Activity,
-  Bell,
-  Brush,
-  Clapperboard,
-  Command,
-  FileStack,
   Home,
+  Wand2,
+  Video,
   LayoutTemplate,
+  Activity,
+  ShieldCheck,
+  Search,
+  Bell,
+  Command,
+  Plus,
+  Sparkles,
+  Type,
+  Clapperboard,
+  FileStack,
   Network,
   Palette,
-  Plus,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Type as TypeIcon,
-  Video,
-  Wand2,
+  Brush,
+  X,
+  ChevronRight,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Play,
+  Square,
+  RefreshCw,
+  Settings,
+  Eye,
+  Volume2,
+  Image,
+  Layers,
+  List,
+  BarChart,
+  User,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
-import { BRAND_KITS, FORMATS } from "@/lib/studio-data"
+import {
+  BRAND_KITS,
+  FORMATS,
+  MODULES,
+  ENGINES,
+  LAYERS,
+  AUDIT_GATES,
+  SAMPLE_BRIEFS,
+} from "@/lib/studio-data"
 import { useProduction } from "@/lib/use-production"
 import { BrandMark } from "./brand-mark"
-import { BriefingComposer } from "./briefing-composer"
-import { PipelineTrack } from "./pipeline-track"
-import { ProductionPreview } from "./production-preview"
-import { LayersPanel } from "./layers-panel"
-import { AuditPanel } from "./audit-panel"
-import { ArchitectureBlueprint } from "./architecture-blueprint"
-import { VideoLab } from "./video-lab"
-import { ConsentManager } from "./consent-manager"
 import { LoginGate } from "./login-gate"
-import { RealPipelinePanel } from "./real-pipeline-panel"
-import { GraphicsLab } from "./graphics-lab"
 
-/**
- * ------------------------------------------------------------------
- * DESIGN TOKENS — Lucrom Studio
- * ------------------------------------------------------------------
- * Palette (violet-on-charcoal, distinct from generic "purple SaaS"
- * by pairing it with a warm ember accent used only for production
- * status, never for UI chrome):
- *   --lc-bg        #0B0B12  page canvas
- *   --lc-surface   #14141F  cards / sidebar
- *   --lc-raised    #1B1B29  hovered / nested surfaces
- *   --lc-border    #262636  hairline
- *   --lc-border-2  #34344A  emphasized hairline
- *   --lc-violet    #7C5CFF  primary accent
- *   --lc-violet-2  #B892FF  accent, lighter step
- *   --lc-ember     #FF9A5A  production / "live" status only
- *   --lc-text      #F4F3FA  primary text
- *   --lc-text-2    #9997AE  secondary text
- *   --lc-text-3    #67667C  tertiary / placeholder
- *
- * Type: display = Space Grotesk (headlines, the one place we allow
- * character), body = Inter, mono = JetBrains Mono (status, %s,
- * timestamps — anything that reads as machine output).
- *
- * Signature element: the "pipeline rail" — a horizontal, glowing
- * stage tracker that stands in for a progress bar everywhere in the
- * product (hero, cards, continue-strip). It's literal to the
- * subject: this is a studio built from a layered AI pipeline, so
- * the pipeline itself becomes the recurring visual motif instead of
- * a generic progress bar.
- * ------------------------------------------------------------------
- */
+// ============================================================
+// 1. TIPOS E CONSTANTES GLOBAIS
+// ============================================================
+type Nav =
+  | "home"
+  | "studio"
+  | "video"
+  | "graphics"
+  | "real"
+  | "consent"
+  | "architecture"
 
-type View = "studio" | "video" | "consent" | "architecture" | "real" | "graphics"
-type Nav = "home" | View
+type ModalType =
+  | "create"
+  | "format"
+  | "project"
+  | "briefing"
+  | "replace-image"
+  | "continue-production"
+  | null
 
-const NAV_ITEMS: { id: Nav; label: string; icon: typeof Home }[] = [
+const NAV_ITEMS: { id: Nav; label: string; icon: any }[] = [
   { id: "home", label: "Início", icon: Home },
   { id: "studio", label: "Estúdio", icon: Wand2 },
   { id: "video", label: "Vídeo", icon: Video },
@@ -81,107 +81,160 @@ const NAV_ITEMS: { id: Nav; label: string; icon: typeof Home }[] = [
   { id: "consent", label: "Consentimento", icon: ShieldCheck },
 ]
 
-const QUICK_FORMATS = [
-  { id: "reel", label: "Reel", ratio: "9:16", icon: Video },
-  { id: "post", label: "Post", ratio: "1:1", icon: LayoutTemplate },
-  { id: "carousel", label: "Carrossel", ratio: "1:1", icon: FileStack },
-  { id: "video", label: "Vídeo", ratio: "16:9", icon: Clapperboard },
-  { id: "banner", label: "Banner", ratio: "16:9", icon: TypeIcon },
-  { id: "campaign", label: "Campanha", ratio: "Personalizado", icon: Sparkles },
-] as const
-
-const RECENT_PROJECTS = [
-  { id: "1", title: "Reel — Lançamento Inverno", status: "Em produção", updated: "Atualizado há 10 min", collaborators: 3 },
-  { id: "2", title: "Produto — Hambúrguer", status: "Concluído", updated: "Atualizado há 2 h", collaborators: 4 },
-  { id: "3", title: "Institucional — Aurora Bank", status: "Rascunho", updated: "Atualizado há 2 dias", collaborators: 2 },
-  { id: "4", title: "Promo — Combo R$25", status: "Concluído", updated: "Atualizado há 3 dias", collaborators: 3 },
-] as const
-
-const STATUS_STYLES: Record<string, string> = {
-  "Em produção": "bg-[var(--lc-ember)]/15 text-[var(--lc-ember)]",
-  "Concluído": "bg-emerald-400/15 text-emerald-300",
-  "Rascunho": "bg-[var(--lc-text-3)]/15 text-[var(--lc-text-2)]",
-}
-
+// ============================================================
+// 2. COMPONENTE PRINCIPAL – StudioShell
+// ============================================================
 export function StudioShell() {
-  const { state, start, reset, refineLayer, decideGate } = useProduction()
-  const [brandId, setBrandId] = useState(BRAND_KITS[0].id)
-  const [formatId, setFormatId] = useState<string>(FORMATS[0].id)
+  // Navegação
   const [nav, setNav] = useState<Nav>("home")
   const mainRef = useRef<HTMLElement>(null)
 
+  // Estado de produção
+  const { state, start, reset, refineLayer, decideGate } = useProduction()
   const running = state.status === "running"
 
-  const handleProduce = (brief: string) => {
-    setNav("studio")
-    start(brief, brandId)
-  }
-  const handleStop = () => reset()
-  const handleBrandChange = (id: string) => {
-    if (!running) setBrandId(id)
-  }
-  const handleFormatChange = (id: string) => {
-    if (!running) setFormatId(id)
-  }
+  // Modais
+  const [modal, setModal] = useState<ModalType>(null)
+  const [selectedFormat, setSelectedFormat] = useState<string>(FORMATS[0].id)
+  const [selectedProject, setSelectedProject] = useState<any>(null)
+  const [briefText, setBriefText] = useState("")
 
-  const showInternalViews = process.env.NEXT_PUBLIC_SHOW_INTERNAL_VIEWS === "true"
+  // Dados mockados (projetos, rascunhos)
+  const projects = [
+    { id: "1", title: "Reel — Lançamento Inverno", status: "Em produção", updated: "há 10 min", collaborators: 2 },
+    { id: "2", title: "Reel — Lançamento Inverno", status: "Em produção", updated: "há 2 h", collaborators: 3 },
+  ]
+  const drafts = [
+    { id: "d1", title: "Institucional - Aurora Bank", updated: "há 2 dias" },
+    { id: "d2", title: "Promo - Combo R$25", updated: "há 3 dias" },
+  ]
 
-  // Scroll-lock do "app shell": o Studio se comporta como um app (tipo
-  // FlutterFlow) — a página em volta (html/body) nunca rola, só a área de
-  // conteúdo de cada tela (o <main> abaixo) rola internamente quando o
-  // conteúdo é mais alto que a viewport. Sem isso, trocar de tela deixava o
-  // scroll do navegador "vazar" e componentes pareciam sumir/cortar.
+  // Scroll lock do app
   useEffect(() => {
     const html = document.documentElement
     const body = document.body
     const prevHtmlOverflow = html.style.overflow
     const prevBodyOverflow = body.style.overflow
-    const prevBodyOverscroll = body.style.overscrollBehavior
     html.style.overflow = "hidden"
     body.style.overflow = "hidden"
     body.style.overscrollBehavior = "none"
     return () => {
       html.style.overflow = prevHtmlOverflow
       body.style.overflow = prevBodyOverflow
-      body.style.overscrollBehavior = prevBodyOverscroll
+      body.style.overscrollBehavior = "auto"
     }
   }, [])
 
-  // Volta pro topo da área de conteúdo a cada troca de tela — evita herdar a
-  // posição de scroll da tela anterior quando a nova tem menos conteúdo.
+  useEffect(() => {
+    if (modal) document.body.style.overflow = "hidden"
+    else document.body.style.overflow = ""
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [modal])
+
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0 })
   }, [nav])
 
+  // Handlers modais
+  const handleOpenModal = (type: ModalType, data?: any) => {
+    if (type === "project") setSelectedProject(data)
+    else setSelectedProject(null)
+    setModal(type)
+  }
+  const handleCloseModal = () => setModal(null)
+
+  const handleStartProduction = (brief: string) => {
+    start(brief, BRAND_KITS[0].id)
+    setNav("studio")
+  }
+
+  const showInternalViews = process.env.NEXT_PUBLIC_SHOW_INTERNAL_VIEWS === "true"
+  const items = showInternalViews
+    ? [...NAV_ITEMS, { id: "architecture" as const, label: "Arquitetura", icon: Network }]
+    : NAV_ITEMS
+
   return (
     <div
-      className="flex h-screen min-w-0 overflow-hidden bg-[var(--lc-bg)] text-[var(--lc-text)] antialiased"
-      style={
-        {
-          "--lc-bg": "#0B0B12",
-          "--lc-surface": "#14141F",
-          "--lc-raised": "#1B1B29",
-          "--lc-border": "#262636",
-          "--lc-border-2": "#34344A",
-          "--lc-violet": "#7C5CFF",
-          "--lc-violet-2": "#B892FF",
-          "--lc-ember": "#FF9A5A",
-          "--lc-text": "#F4F3FA",
-          "--lc-text-2": "#9997AE",
-          "--lc-text-3": "#67667C",
-          fontFamily: "var(--font-body, 'Inter', system-ui, sans-serif)",
-        } as React.CSSProperties
-      }
+      className="flex h-screen w-screen overflow-hidden bg-[#0B0B12] text-[#F4F3FA]"
+      style={{ fontFamily: "var(--font-body, Inter, system-ui, sans-serif)" }}
     >
-      <Sidebar nav={nav} onNavChange={setNav} showInternalViews={showInternalViews} />
+      {/* Sidebar */}
+      <aside className="hidden h-full w-48 shrink-0 flex-col border-r border-[#262636] bg-[#14141F] px-2.5 py-3 lg:flex">
+        <div className="flex items-center gap-2 px-1 pb-3">
+          <BrandMark />
+          <div className="leading-tight">
+            <p className="font-display text-[12px] font-semibold tracking-tight">Lucrom Studio</p>
+            <p className="text-[8px] font-medium uppercase tracking-[0.14em] text-[#67667C]">Agência de IA</p>
+          </div>
+        </div>
+        <nav className="flex flex-1 flex-col gap-0.5">
+          {items.map((item) => {
+            const Icon = item.icon
+            const active = nav === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setNav(item.id)}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-[11.5px] font-medium transition-colors",
+                  active
+                    ? "bg-[#7C5CFF]/12 text-[#B892FF]"
+                    : "text-[#9997AE] hover:bg-[#1B1B29] hover:text-[#F4F3FA]"
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" aria-hidden />
+                {item.label}
+              </button>
+            )
+          })}
+        </nav>
+        <div className="mt-2 rounded-lg border border-[#262636] bg-gradient-to-br from-[#7C5CFF]/15 to-transparent p-2.5">
+          <div className="flex items-center gap-1.5 text-[#B892FF]">
+            <Wand2 className="h-3 w-3" aria-hidden />
+            <p className="text-[9.5px] font-semibold">Novidade no Lucrom AI</p>
+          </div>
+          <p className="mt-1 text-[9.5px] leading-relaxed text-[#9997AE]">Imagens com IA mais realistas.</p>
+        </div>
+        <div className="mt-2 flex items-center gap-2 rounded-md border border-[#262636] px-2 py-1.5">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#7C5CFF] text-[10px] font-semibold text-white">
+            LF
+          </div>
+          <div className="min-w-0 leading-tight">
+            <p className="truncate text-[10.5px] font-medium">Lucas Ferreira</p>
+            <p className="truncate text-[8.5px] text-[#67667C]">Plano Profissional</p>
+          </div>
+        </div>
+      </aside>
 
-      <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar />
+      {/* Conteúdo principal */}
+      <div className="flex h-full flex-1 flex-col overflow-hidden">
+        {/* Topbar */}
+        <header className="flex shrink-0 items-center gap-4 border-b border-[#262636] bg-[#0B0B12]/85 px-4 py-1.5 backdrop-blur-xl lg:px-6">
+          <div className="relative w-full max-w-xs">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[#67667C]" />
+            <input
+              type="text"
+              placeholder="Buscar projetos, peças ou mídias..."
+              className="w-full rounded-full border border-[#262636] bg-[#14141F] py-1 pl-8 pr-12 text-[11px] text-[#F4F3FA] placeholder:text-[#67667C] outline-none focus:border-[#7C5CFF]/50"
+            />
+            <span className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-[#34344A] px-1 py-0.5 text-[9px] text-[#67667C]">
+              <Command className="h-2 w-2" />K
+            </span>
+          </div>
+          <div className="ml-auto flex items-center gap-2.5">
+            <button className="relative flex h-7 w-7 items-center justify-center rounded-full border border-[#262636] text-[#9997AE] hover:bg-[#1B1B29]">
+              <Bell className="h-3 w-3" />
+              <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[#FF9A5A]" />
+            </button>
+            <LoginGate />
+          </div>
+        </header>
 
-        <main
-          ref={mainRef}
-          className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col overflow-y-auto overscroll-contain px-4 py-3 lg:px-6"
-        >
+        {/* Área de conteúdo rolável internamente */}
+        <main ref={mainRef} className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 lg:px-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={nav}
@@ -189,496 +242,456 @@ export function StudioShell() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-              className="flex min-h-0 flex-1 flex-col"
+              className="mx-auto flex min-h-full max-w-[1400px] flex-col"
             >
-              {nav === "architecture" ? (
-                <ArchitectureBlueprint />
-              ) : nav === "video" ? (
-                <VideoLab />
-              ) : nav === "real" ? (
-                <RealPipelinePanel />
-              ) : nav === "graphics" ? (
-                <GraphicsLab />
-              ) : nav === "consent" ? (
-                <ConsentManager />
-              ) : nav === "studio" ? (
+              {nav === "architecture" && <ArchitectureView />}
+              {nav === "video" && <VideoLabView />}
+              {nav === "real" && <RealPipelineView />}
+              {nav === "graphics" && <GraphicsLabView />}
+              {nav === "consent" && <ConsentManagerView />}
+              {nav === "studio" && (
                 <StudioView
                   running={running}
                   state={state}
-                  brandId={brandId}
-                  formatId={formatId}
-                  onBrandChange={handleBrandChange}
-                  onFormatChange={handleFormatChange}
-                  onProduce={handleProduce}
+                  brandId={BRAND_KITS[0].id}
+                  formatId={selectedFormat}
+                  onBrandChange={() => {}}
+                  onFormatChange={setSelectedFormat}
+                  onProduce={(brief) => {
+                    start(brief, BRAND_KITS[0].id)
+                  }}
                   onStop={() => {
-                    handleStop()
+                    reset()
                     setNav("home")
                   }}
                   onRefineLayer={refineLayer}
                   onDecideGate={decideGate}
                   onBack={() => setNav("home")}
                 />
-              ) : (
+              )}
+              {nav === "home" && (
                 <HomeView
-                  onStartCreate={() => setNav("studio")}
-                  onQuickProduce={handleProduce}
-                  showInternalViews={showInternalViews}
-                  onViewChange={setNav}
+                  onStartCreate={() => handleOpenModal("create")}
+                  onQuickProduce={handleStartProduction}
+                  onOpenModal={handleOpenModal}
+                  selectedFormat={selectedFormat}
+                  setSelectedFormat={setSelectedFormat}
+                  projects={projects}
+                  drafts={drafts}
+                  state={state}
                 />
               )}
             </motion.div>
           </AnimatePresence>
         </main>
       </div>
+
+      {/* ===== MODAIS ===== */}
+      <AnimatePresence>
+        {modal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md"
+            onClick={handleCloseModal}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-2xl rounded-2xl border border-[#34344A] bg-[#14141F]/95 p-6 shadow-2xl backdrop-blur-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="absolute right-3 top-3 rounded-full p-1 text-[#67667C] hover:bg-[#1B1B29] hover:text-[#F4F3FA]"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="mt-2">
+                {modal === "create" && (
+                  <>
+                    <h2 className="font-display text-xl font-semibold">Nova peça</h2>
+                    <p className="text-sm text-[#9997AE]">Escolha o formato e comece seu briefing.</p>
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      {FORMATS.map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedFormat(f.id)
+                            handleCloseModal()
+                            handleOpenModal("format")
+                          }}
+                          className="flex items-center gap-2 rounded-lg border border-[#262636] p-3 transition-colors hover:border-[#7C5CFF]"
+                        >
+                          {f.id === "reel" && <Video className="h-4 w-4 text-[#B892FF]" />}
+                          {f.id === "feed" && <LayoutTemplate className="h-4 w-4 text-[#B892FF]" />}
+                          {f.id === "yt" && <Clapperboard className="h-4 w-4 text-[#B892FF]" />}
+                          {f.id === "story" && <FileStack className="h-4 w-4 text-[#B892FF]" />}
+                          <span className="text-sm font-medium">{f.name}</span>
+                          <span className="ml-auto text-xs text-[#67667C]">{f.ratio}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {modal === "format" && (
+                  <>
+                    <h2 className="font-display text-xl font-semibold">
+                      Configurar {FORMATS.find((f) => f.id === selectedFormat)?.name || selectedFormat}
+                    </h2>
+                    <p className="text-sm text-[#9997AE]">Defina duração, tom e outras opções.</p>
+                    <div className="mt-4 space-y-3">
+                      <div>
+                        <label className="text-xs font-medium uppercase tracking-wider text-[#67667C]">Duração</label>
+                        <select className="mt-1 w-full rounded-lg border border-[#262636] bg-[#1B1B29] px-3 py-2 text-sm text-[#F4F3FA]">
+                          <option>15s</option>
+                          <option>30s</option>
+                          <option>45s</option>
+                          <option>60s</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium uppercase tracking-wider text-[#67667C]">Tom</label>
+                        <select className="mt-1 w-full rounded-lg border border-[#262636] bg-[#1B1B29] px-3 py-2 text-sm text-[#F4F3FA]">
+                          <option>Nubank — direto e humano</option>
+                          <option>Apple — minimal e aspiracional</option>
+                          <option>Editorial — sofisticado</option>
+                          <option>Energético — jovem e rápido</option>
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCloseModal()
+                          handleOpenModal("briefing")
+                        }}
+                        className="mt-2 w-full rounded-full bg-[#7C5CFF] py-2 text-sm font-semibold text-white"
+                      >
+                        Continuar para briefing
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {modal === "project" && selectedProject && (
+                  <>
+                    <h2 className="font-display text-xl font-semibold">{selectedProject.title}</h2>
+                    <p className="text-sm text-[#9997AE]">Status: {selectedProject.status}</p>
+                    <p className="text-sm text-[#9997AE]">Atualizado {selectedProject.updated}</p>
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        onClick={() => {
+                          handleCloseModal()
+                          setNav("studio")
+                        }}
+                        className="flex-1 rounded-full bg-[#7C5CFF] py-2 text-sm font-semibold text-white"
+                      >
+                        Continuar produção
+                      </button>
+                      <button className="flex-1 rounded-full border border-[#262636] py-2 text-sm text-[#9997AE]">
+                        Ver detalhes
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {modal === "briefing" && (
+                  <>
+                    <h2 className="font-display text-xl font-semibold">Briefing</h2>
+                    <p className="text-sm text-[#9997AE]">Descreva sua ideia ou escolha um exemplo.</p>
+                    <div className="mt-4 space-y-3">
+                      <textarea
+                        className="w-full rounded-lg border border-[#262636] bg-[#1B1B29] p-3 text-sm text-[#F4F3FA] placeholder:text-[#67667C]"
+                        rows={4}
+                        placeholder="Ex: Crie um Reel de 30s anunciando nossa nova conta digital..."
+                        value={briefText}
+                        onChange={(e) => setBriefText(e.target.value)}
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        {SAMPLE_BRIEFS.map((sample, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setBriefText(sample)}
+                            className="rounded-full border border-[#262636] px-3 py-1 text-[10px] text-[#9997AE] hover:bg-[#1B1B29]"
+                          >
+                            Exemplo {i + 1}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (briefText.trim()) {
+                            handleStartProduction(briefText)
+                            handleCloseModal()
+                          }
+                        }}
+                        className="w-full rounded-full bg-[#7C5CFF] py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        disabled={!briefText.trim()}
+                      >
+                        Iniciar produção
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {modal === "replace-image" && (
+                  <>
+                    <h2 className="font-display text-xl font-semibold">Substituir imagem</h2>
+                    <p className="text-sm text-[#9997AE]">Faça upload de uma nova imagem ou escolha da biblioteca.</p>
+                    <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border-2 border-dashed border-[#34344A] p-8">
+                      <Image className="h-8 w-8 text-[#67667C]" />
+                      <p className="text-sm text-[#9997AE]">Arraste ou clique para selecionar</p>
+                      <button className="rounded-full bg-[#7C5CFF] px-4 py-1.5 text-sm font-semibold text-white">
+                        Selecionar arquivo
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {modal === "continue-production" && (
+                  <>
+                    <h2 className="font-display text-xl font-semibold">Continuar produção</h2>
+                    <p className="text-sm text-[#9997AE]">Retome de onde parou.</p>
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center justify-between rounded-lg border border-[#262636] p-3">
+                        <div>
+                          <p className="font-medium">Reel — Lançamento Inverno</p>
+                          <p className="text-xs text-[#67667C]">72% concluído</p>
+                        </div>
+                        <div className="h-1 w-24 rounded-full bg-[#1B1B29]">
+                          <div className="h-full w-[72%] rounded-full bg-[#7C5CFF]" />
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleCloseModal()
+                          setNav("studio")
+                        }}
+                        className="w-full rounded-full bg-[#7C5CFF] py-2 text-sm font-semibold text-white"
+                      >
+                        Abrir estúdio completo
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
-/* ------------------------------------------------------------------ */
-/* Sidebar                                                             */
-/* ------------------------------------------------------------------ */
+// ============================================================
+// 3. VIEWS DA SIDEBAR (com conteúdo real)
+// ============================================================
 
-function Sidebar({
-  nav,
-  onNavChange,
-  showInternalViews,
-}: {
-  nav: Nav
-  onNavChange: (v: Nav) => void
-  showInternalViews: boolean
-}) {
-  const items = showInternalViews
-    ? [...NAV_ITEMS, { id: "architecture" as const, label: "Arquitetura", icon: Network }]
-    : NAV_ITEMS
-
-  return (
-    <aside className="hidden h-full w-48 shrink-0 flex-col overflow-y-auto border-r border-[var(--lc-border)] bg-[var(--lc-surface)] px-2.5 py-3 lg:flex">
-      <div className="flex items-center gap-2 px-1 pb-3">
-        <BrandMark />
-        <div className="leading-tight">
-          <p className="font-[var(--font-display,'Space_Grotesk',sans-serif)] text-[12px] font-semibold tracking-tight">
-            Lucrom Studio
-          </p>
-          <p className="text-[8px] font-medium uppercase tracking-[0.14em] text-[var(--lc-text-3)]">
-            Agência de IA
-          </p>
-        </div>
-      </div>
-
-      <nav className="flex flex-1 flex-col gap-0.5">
-        {items.map((item) => {
-          const Icon = item.icon
-          const active = nav === item.id
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onNavChange(item.id)}
-              className={cn(
-                "flex items-center gap-2 rounded-md px-2 py-1.5 text-[11.5px] font-medium transition-colors",
-                active
-                  ? "bg-[var(--lc-violet)]/12 text-[var(--lc-violet-2)]"
-                  : "text-[var(--lc-text-2)] hover:bg-[var(--lc-raised)] hover:text-[var(--lc-text)]",
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" aria-hidden />
-              {item.label}
-            </button>
-          )
-        })}
-      </nav>
-
-      <div className="mt-2 rounded-lg border border-[var(--lc-border)] bg-gradient-to-br from-[var(--lc-violet)]/15 to-transparent p-2.5">
-        <div className="flex items-center gap-1.5 text-[var(--lc-violet-2)]">
-          <Wand2 className="h-3 w-3" aria-hidden />
-          <p className="text-[9.5px] font-semibold">Novidade no Lucrom AI</p>
-        </div>
-        <p className="mt-1 text-[9.5px] leading-relaxed text-[var(--lc-text-2)]">
-          Imagens com IA mais realistas.
-        </p>
-      </div>
-
-      <div className="mt-2 flex items-center gap-2 rounded-md border border-[var(--lc-border)] px-2 py-1.5">
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--lc-violet)] text-[10px] font-semibold text-white">
-          LF
-        </div>
-        <div className="min-w-0 leading-tight">
-          <p className="truncate text-[10.5px] font-medium">Lucas Ferreira</p>
-          <p className="truncate text-[8.5px] text-[var(--lc-text-3)]">Plano Profissional</p>
-        </div>
-      </div>
-    </aside>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Topbar                                                               */
-/* ------------------------------------------------------------------ */
-
-function Topbar() {
-  return (
-    <header className="sticky top-0 z-20 flex shrink-0 items-center gap-4 border-b border-[var(--lc-border)] bg-[var(--lc-bg)]/85 px-4 py-1.5 backdrop-blur-xl lg:px-6">
-      <div className="relative w-full max-w-xs">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-[var(--lc-text-3)]" aria-hidden />
-        <input
-          type="text"
-          placeholder="Buscar projetos, peças ou mídias..."
-          className="w-full rounded-full border border-[var(--lc-border)] bg-[var(--lc-surface)] py-1 pl-8 pr-12 text-[11px] text-[var(--lc-text)] placeholder:text-[var(--lc-text-3)] outline-none focus:border-[var(--lc-violet)]/50"
-        />
-        <span className="pointer-events-none absolute right-2.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5 rounded-md border border-[var(--lc-border-2)] px-1 py-0.5 text-[9px] text-[var(--lc-text-3)]">
-          <Command className="h-2 w-2" aria-hidden />K
-        </span>
-      </div>
-
-      <div className="ml-auto flex items-center gap-2.5">
-        <button
-          type="button"
-          aria-label="Notificações"
-          className="relative flex h-7 w-7 items-center justify-center rounded-full border border-[var(--lc-border)] text-[var(--lc-text-2)] hover:bg-[var(--lc-raised)]"
-        >
-          <Bell className="h-3 w-3" aria-hidden />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-[var(--lc-ember)]" />
-        </button>
-        <LoginGate />
-      </div>
-    </header>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Home view — hero, quick create, recent projects                     */
-/* ------------------------------------------------------------------ */
-
+// 3.1 HOME VIEW
 function HomeView({
   onStartCreate,
   onQuickProduce,
-  showInternalViews,
-  onViewChange,
-}: {
-  onStartCreate: () => void
-  onQuickProduce: (brief: string) => void
-  showInternalViews: boolean
-  onViewChange: (v: View) => void
-}) {
-  return (
-    <div className="grid min-h-0 flex-1 grid-cols-12 gap-3">
-      <div className="col-span-12 flex min-h-0 flex-col gap-3 xl:col-span-9">
-        <Hero onStartCreate={onStartCreate} />
-        <QuickCreateRow showInternalViews={showInternalViews} onViewChange={onViewChange} onStartCreate={onStartCreate} />
+  onOpenModal,
+  selectedFormat,
+  setSelectedFormat,
+  projects,
+  drafts,
+  state,
+}: any) {
+  const quickFormats = [
+    { id: "reel", label: "Reel", ratio: "9:16", icon: Video },
+    { id: "post", label: "Post", ratio: "1:1", icon: LayoutTemplate },
+    { id: "carrossel", label: "Carrossel", ratio: "1:1", icon: FileStack },
+    { id: "video", label: "Video", ratio: "16:9", icon: Clapperboard },
+    { id: "banner", label: "Banner", ratio: "16:9", icon: Type },
+    { id: "campanha", label: "Campanha", ratio: "Personalizado", icon: Sparkles },
+  ]
 
-        <section className="flex min-h-0 flex-1 flex-col">
-          <div className="mb-2 flex shrink-0 items-end justify-between">
-            <h2 className="font-[var(--font-display,'Space_Grotesk',sans-serif)] text-[13px] font-semibold tracking-tight">
-              Projetos recentes
-            </h2>
-            <button type="button" className="text-[10.5px] font-medium text-[var(--lc-violet-2)] hover:underline">
-              Ver todos →
-            </button>
-          </div>
-          <div className="grid min-h-0 flex-1 grid-cols-2 gap-2.5 lg:grid-cols-4">
-            {RECENT_PROJECTS.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
+  return (
+    <div className="flex h-full flex-col gap-3">
+      <div className="flex shrink-0 flex-col gap-3 lg:flex-row">
+        {/* Hero */}
+        <section className="relative flex-1 overflow-hidden rounded-xl border border-[#262636] bg-gradient-to-br from-[#1B1330] via-[#14101F] to-[#0B0B12] px-5 py-3.5 sm:px-6">
+          <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[#7C5CFF]/25 blur-[80px]" />
+          <div className="relative flex h-full flex-col justify-center gap-2">
+            <p className="text-[10.5px] text-[#9997AE]">Boa noite, Lucas 👋</p>
+            <h1 className="font-display text-[19px] font-semibold leading-[1.15] tracking-tight sm:text-[21px]">
+              Seu estúdio criativo, em{" "}
+              <span className="bg-gradient-to-r from-[#B892FF] to-[#7C5CFF] bg-clip-text text-transparent">
+                uma única plataforma
+              </span>
+              .
+            </h1>
+            <p className="text-[11px] leading-relaxed text-[#9997AE]">
+              Da ideia à peça pronta, com direção e controle de qualidade.
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <button
+                onClick={onStartCreate}
+                className="flex items-center gap-1.5 rounded-full bg-[#7C5CFF] px-3.5 py-1.5 text-[11px] font-semibold text-white transition-transform hover:scale-[1.02]"
+              >
+                <Plus className="h-3 w-3" /> Criar nova peça
+              </button>
+              <button className="flex items-center gap-1.5 rounded-full border border-[#34344A] px-3.5 py-1.5 text-[11px] font-medium text-[#9997AE] hover:text-[#F4F3FA]">
+                Como funciona
+              </button>
+            </div>
           </div>
         </section>
 
-        <ContinueProductionStrip onResume={onStartCreate} />
-      </div>
-
-      <div className="col-span-12 hidden min-h-0 xl:col-span-3 xl:block">
-        <QuickEditPanel />
-      </div>
-    </div>
-  )
-}
-
-function QuickCreateRow({
-  showInternalViews,
-  onViewChange,
-  onStartCreate,
-}: {
-  showInternalViews: boolean
-  onViewChange: (v: View) => void
-  onStartCreate: () => void
-}) {
-  return (
-    <section className="shrink-0 rounded-xl border border-[var(--lc-border)] bg-[var(--lc-surface)] p-3">
-      <div className="mb-2 flex items-end justify-between gap-4">
-        <div>
-          <h2 className="font-[var(--font-display,'Space_Grotesk',sans-serif)] text-[13px] font-semibold tracking-tight">
-            O que você quer criar hoje?
-          </h2>
-          <p className="text-[10.5px] text-[var(--lc-text-2)]">Escolha o formato ideal para o seu objetivo.</p>
-        </div>
-        {showInternalViews && (
-          <button
-            type="button"
-            onClick={() => onViewChange("architecture")}
-            className="hidden items-center gap-1 text-[10px] text-[var(--lc-text-3)] hover:text-[var(--lc-text-2)] sm:flex"
-          >
-            <Network className="h-3 w-3" aria-hidden />
-            Arquitetura interna
-          </button>
-        )}
-      </div>
-
-      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-        {QUICK_FORMATS.map((format, i) => {
-          const Icon = format.icon
-          return (
-            <button
-              key={format.id}
-              type="button"
-              onClick={onStartCreate}
-              className={cn(
-                "group flex flex-col items-center gap-1 rounded-lg border px-1.5 py-2 text-center transition-colors",
-                i === 0
-                  ? "border-[var(--lc-violet)] bg-[var(--lc-violet)]/10"
-                  : "border-[var(--lc-border)] bg-[var(--lc-raised)]/40 hover:border-[var(--lc-border-2)]",
-              )}
-            >
-              <span
-                className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-md",
-                  i === 0 ? "bg-[var(--lc-violet)] text-white" : "bg-[var(--lc-surface)] text-[var(--lc-text-2)]",
-                )}
-              >
-                <Icon className="h-3 w-3" aria-hidden />
-              </span>
-              <span className="text-[10px] font-medium">{format.label}</span>
-              <span className="font-[var(--font-mono,'JetBrains_Mono',monospace)] text-[8.5px] text-[var(--lc-text-3)]">
-                {format.ratio}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-function Hero({ onStartCreate }: { onStartCreate: () => void }) {
-  return (
-    <section className="relative shrink-0 overflow-hidden rounded-xl border border-[var(--lc-border)] bg-gradient-to-br from-[#1B1330] via-[#14101F] to-[#0B0B12] px-5 py-3.5 sm:px-6">
-      <div
-        className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[var(--lc-violet)]/25 blur-[80px]"
-        aria-hidden
-      />
-      <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="max-w-md">
-          <p className="text-[10.5px] text-[var(--lc-text-2)]">Boa noite, Lucas 👋</p>
-          <h1 className="mt-1 font-[var(--font-display,'Space_Grotesk',sans-serif)] text-[19px] font-semibold leading-[1.15] tracking-tight sm:text-[21px]">
-            Seu estúdio criativo, em{" "}
-            <span className="bg-gradient-to-r from-[var(--lc-violet-2)] to-[var(--lc-violet)] bg-clip-text text-transparent">
-              uma única plataforma
-            </span>
-            .
-          </h1>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--lc-text-2)]">
-            Da ideia à peça pronta, com direção e controle de qualidade.
-          </p>
-
-          <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={onStartCreate}
-              className="flex items-center gap-1.5 rounded-full bg-[var(--lc-violet)] px-3.5 py-1.5 text-[11px] font-semibold text-white transition-transform hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <Plus className="h-3 w-3" aria-hidden />
-              Criar nova peça
-            </button>
-            <button
-              type="button"
-              className="flex items-center gap-1.5 rounded-full border border-[var(--lc-border-2)] px-3.5 py-1.5 text-[11px] font-medium text-[var(--lc-text-2)] hover:text-[var(--lc-text)]"
-            >
-              Como funciona
-            </button>
+        {/* Quick Create */}
+        <section className="flex w-full flex-col justify-center rounded-xl border border-[#262636] bg-[#14141F] p-3 lg:w-64">
+          <h2 className="font-display text-[13px] font-semibold tracking-tight">O que você quer criar hoje?</h2>
+          <p className="text-[10.5px] text-[#9997AE]">Escolha o formato ideal.</p>
+          <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6 lg:grid-cols-3">
+            {quickFormats.map((format) => {
+              const Icon = format.icon
+              return (
+                <button
+                  key={format.id}
+                  onClick={() => {
+                    setSelectedFormat(format.id)
+                    onOpenModal("format")
+                  }}
+                  className="group flex flex-col items-center gap-1 rounded-lg border border-[#262636] bg-[#1B1B29]/40 px-1.5 py-2 text-center transition-colors hover:border-[#34344A]"
+                >
+                  <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[#14141F] text-[#9997AE]">
+                    <Icon className="h-3 w-3" />
+                  </span>
+                  <span className="text-[10px] font-medium">{format.label}</span>
+                  <span className="font-mono text-[8.5px] text-[#67667C]">{format.ratio}</span>
+                </button>
+              )
+            })}
           </div>
-        </div>
-
-        <PipelineRailPreview />
-      </div>
-    </section>
-  )
-}
-
-/** Signature element: a glowing horizontal stage rail standing in for the
- *  product's core mechanic (briefing → criação → direção → auditoria). */
-function PipelineRailPreview() {
-  const stages = ["Briefing", "Criação", "Direção", "Auditoria"]
-  return (
-    <div className="relative z-10 flex shrink-0 items-center gap-0 rounded-lg border border-[var(--lc-border)] bg-[var(--lc-surface)]/70 p-2 backdrop-blur lg:w-64">
-      {stages.map((stage, i) => (
-        <div key={stage} className="flex flex-1 items-center">
-          <div className="flex flex-col items-center gap-0.5">
-            <span
-              className={cn(
-                "flex h-4 w-4 items-center justify-center rounded-full font-[var(--font-mono,'JetBrains_Mono',monospace)] text-[8px] font-medium",
-                i === 0
-                  ? "bg-[var(--lc-violet)] text-white shadow-[0_0_0_3px_rgba(124,92,255,0.18)]"
-                  : "border border-[var(--lc-border-2)] text-[var(--lc-text-3)]",
-              )}
-            >
-              {i + 1}
-            </span>
-            <span className="text-[8px] text-[var(--lc-text-2)]">{stage}</span>
-          </div>
-          {i < stages.length - 1 && (
-            <div className="mx-1 mb-3 h-px flex-1 bg-gradient-to-r from-[var(--lc-violet)]/60 to-[var(--lc-border-2)]" />
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function ProjectCard({ project }: { project: (typeof RECENT_PROJECTS)[number] }) {
-  return (
-    <article className="group flex cursor-pointer flex-col overflow-hidden rounded-lg border border-[var(--lc-border)] bg-[var(--lc-surface)] transition-colors hover:border-[var(--lc-border-2)]">
-      <div className="relative flex h-10 shrink-0 items-end bg-gradient-to-br from-[var(--lc-raised)] to-[var(--lc-surface)] px-2 pb-1.5">
-        <span
-          className={cn(
-            "rounded-full px-1.5 py-0.5 text-[8px] font-semibold",
-            STATUS_STYLES[project.status],
-          )}
-        >
-          {project.status}
-        </span>
-      </div>
-      <div className="min-h-0 flex-1 px-2 pb-2 pt-1">
-        <h3 className="truncate text-[11px] font-medium">{project.title}</h3>
-        <p className="mt-0.5 truncate text-[9px] text-[var(--lc-text-3)]">{project.updated}</p>
-      </div>
-    </article>
-  )
-}
-
-function ContinueProductionStrip({ onResume }: { onResume: () => void }) {
-  return (
-    <section className="flex shrink-0 flex-col items-start justify-between gap-2 rounded-lg border border-[var(--lc-border)] bg-[var(--lc-surface)] px-3 py-2 sm:flex-row sm:items-center">
-      <div className="flex items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-[var(--lc-raised)]">
-          <Clapperboard className="h-3 w-3 text-[var(--lc-text-2)]" aria-hidden />
-        </span>
-        <div>
-          <p className="text-[10.5px] font-medium">Continue sua produção</p>
-          <p className="text-[9.5px] text-[var(--lc-text-2)]">Reel — Lançamento Inverno</p>
-        </div>
+        </section>
       </div>
 
-      <div className="flex w-full items-center gap-2 sm:w-auto">
-        <div className="flex items-center gap-1.5">
-          <div className="h-1 w-16 overflow-hidden rounded-full bg-[var(--lc-raised)]">
-            <div className="h-full w-[72%] rounded-full bg-gradient-to-r from-[var(--lc-violet)] to-[var(--lc-violet-2)]" />
-          </div>
-          <span className="font-[var(--font-mono,'JetBrains_Mono',monospace)] text-[9px] text-[var(--lc-text-2)]">
-            72%
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={onResume}
-          className="flex items-center gap-1 whitespace-nowrap rounded-full bg-[var(--lc-violet)] px-3 py-1 text-[10px] font-semibold text-white"
-        >
-          Continuar →
-        </button>
-      </div>
-    </section>
-  )
-}
-
-/* ------------------------------------------------------------------ */
-/* Quick edit rail — right column, mirrors the reference layout        */
-/* ------------------------------------------------------------------ */
-
-function QuickEditPanel() {
-  const [tab, setTab] = useState<"imagem" | "texto" | "cores" | "elementos">("imagem")
-  const tabs = [
-    { id: "imagem" as const, label: "Imagem", icon: Sparkles },
-    { id: "texto" as const, label: "Texto", icon: TypeIcon },
-    { id: "cores" as const, label: "Cores", icon: Palette },
-    { id: "elementos" as const, label: "Elementos", icon: LayoutTemplate },
-  ]
-  const sliders = [
-    { label: "Brilho", value: 10 },
-    { label: "Contraste", value: 8 },
-    { label: "Saturação", value: 4 },
-  ]
-
-  return (
-    <div className="flex h-full flex-col rounded-xl border border-[var(--lc-border)] bg-[var(--lc-surface)] p-3">
-      <h2 className="shrink-0 font-[var(--font-display,'Space_Grotesk',sans-serif)] text-[12.5px] font-semibold tracking-tight">
-        Edição rápida
-      </h2>
-
-      <div className="mt-2.5 grid shrink-0 grid-cols-4 gap-1 rounded-lg border border-[var(--lc-border)] bg-[var(--lc-raised)]/40 p-1">
-        {tabs.map((t) => {
-          const Icon = t.icon
-          const active = tab === t.id
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "flex flex-col items-center gap-1 rounded-md py-1.5 text-[9px] font-medium transition-colors",
-                active ? "bg-[var(--lc-violet)]/15 text-[var(--lc-violet-2)]" : "text-[var(--lc-text-3)] hover:text-[var(--lc-text-2)]",
-              )}
-            >
-              <Icon className="h-3 w-3" aria-hidden />
-              {t.label}
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="mt-2.5 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-lg border border-[var(--lc-border)] bg-gradient-to-br from-[var(--lc-raised)] to-[var(--lc-surface)]">
-        <Brush className="h-6 w-6 text-[var(--lc-text-3)]" aria-hidden />
-      </div>
-
-      <div className="mt-2.5 grid shrink-0 grid-cols-2 gap-2">
-        <button type="button" className="rounded-lg border border-[var(--lc-border)] py-1.5 text-[10px] font-medium text-[var(--lc-text-2)] hover:bg-[var(--lc-raised)]">
-          Substituir
-        </button>
-        <button type="button" className="rounded-lg border border-[var(--lc-border)] py-1.5 text-[10px] font-medium text-[var(--lc-text-2)] hover:bg-[var(--lc-raised)]">
-          Remover
-        </button>
-      </div>
-
-      <div className="mt-3 shrink-0">
-        <p className="mb-1.5 text-[10.5px] font-semibold">Ajustes</p>
-        <div className="flex flex-col gap-2">
-          {sliders.map((s) => (
-            <div key={s.label}>
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-[9.5px] text-[var(--lc-text-2)]">{s.label}</span>
-                <span className="font-[var(--font-mono,'JetBrains_Mono',monospace)] text-[9px] text-[var(--lc-text-3)]">
-                  {s.value}
-                </span>
-              </div>
-              <div className="h-1 rounded-full bg-[var(--lc-raised)]">
-                <div
-                  className="h-full rounded-full bg-[var(--lc-violet)]"
-                  style={{ width: `${(s.value / 20) * 100}%` }}
-                />
+      {/* Linha 2: Projetos + Rascunho + Edição rápida */}
+      <div className="flex flex-1 flex-col gap-3 lg:flex-row">
+        <div className="flex flex-1 flex-col gap-3 lg:w-2/3">
+          <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-[#262636] bg-[#14141F] p-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-[13px] font-semibold tracking-tight">Projetos recentes</h2>
+              <div className="flex gap-1">
+                <button className="rounded-full bg-[#7C5CFF]/10 px-2 py-0.5 text-[9px] font-medium text-[#B892FF]">
+                  Em produção
+                </button>
+                <button className="rounded-full px-2 py-0.5 text-[9px] font-medium text-[#67667C] hover:bg-[#1B1B29]">
+                  Concluído
+                </button>
               </div>
             </div>
-          ))}
+            <div className="mt-2 grid flex-1 grid-cols-2 gap-2">
+              {projects.map((p: any) => (
+                <button
+                  key={p.id}
+                  onClick={() => onOpenModal("project", p)}
+                  className="flex flex-col items-start rounded-lg border border-[#262636] bg-[#1B1B29]/30 p-2 text-left transition-colors hover:border-[#34344A]"
+                >
+                  <span className="rounded-full bg-[#FF9A5A]/15 px-1.5 py-0.5 text-[8px] font-semibold text-[#FF9A5A]">
+                    {p.status}
+                  </span>
+                  <p className="mt-1 text-[11px] font-medium">{p.title}</p>
+                  <p className="text-[9px] text-[#67667C]">Atualizado {p.updated}</p>
+                  <span className="mt-0.5 text-[9px] text-[#9997AE]">+{p.collaborators}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="shrink-0 rounded-xl border border-[#262636] bg-[#14141F] p-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-[13px] font-semibold tracking-tight">Rascunho</h2>
+              <button
+                onClick={() => onOpenModal("continue-production")}
+                className="flex items-center gap-1 rounded-full bg-[#7C5CFF] px-3 py-1 text-[10px] font-semibold text-white"
+              >
+                Continuar produção <ChevronRight className="h-3 w-3" />
+              </button>
+            </div>
+            <div className="mt-2 flex flex-col gap-1">
+              {drafts.map((d: any) => (
+                <div key={d.id} className="flex items-center justify-between border-b border-[#262636] py-1 last:border-0">
+                  <div>
+                    <p className="text-[10.5px] font-medium">{d.title}</p>
+                    <p className="text-[9px] text-[#67667C]">Atualizado {d.updated}</p>
+                  </div>
+                  <button className="rounded-full bg-[#1B1B29] px-2 py-0.5 text-[9px] text-[#9997AE] hover:bg-[#262636]">
+                    +1
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Edição rápida */}
+        <div className="flex w-full flex-col gap-3 lg:w-1/3">
+          <section className="flex flex-1 flex-col rounded-xl border border-[#262636] bg-[#14141F] p-3">
+            <h2 className="font-display text-[13px] font-semibold tracking-tight">Edição rápida</h2>
+            <div className="mt-2 grid grid-cols-4 gap-1 rounded-lg border border-[#262636] bg-[#1B1B29]/40 p-1">
+              {["Imagem", "Texto", "Cores", "Elementos"].map((label) => (
+                <button
+                  key={label}
+                  className="flex flex-col items-center gap-1 rounded-md py-1.5 text-[9px] font-medium text-[#67667C] transition-colors hover:text-[#9997AE]"
+                >
+                  {label === "Imagem" && <Brush className="h-3 w-3" />}
+                  {label === "Texto" && <Type className="h-3 w-3" />}
+                  {label === "Cores" && <Palette className="h-3 w-3" />}
+                  {label === "Elementos" && <LayoutTemplate className="h-3 w-3" />}
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex flex-1 items-center justify-center rounded-lg border border-[#262636] bg-gradient-to-br from-[#1B1B29] to-[#14141F]">
+              <Brush className="h-6 w-6 text-[#67667C]" />
+            </div>
+            <button
+              onClick={() => onOpenModal("replace-image")}
+              className="mt-2 w-full rounded-lg border border-[#262636] py-1.5 text-[10px] font-medium text-[#9997AE] hover:bg-[#1B1B29]"
+            >
+              Substituir imagem
+            </button>
+            <div className="mt-3">
+              <p className="mb-1 text-[10.5px] font-semibold">Ajustes</p>
+              {[
+                { label: "Brilho", value: 10 },
+                { label: "Contraste", value: 8 },
+                { label: "Saturação", value: 4 },
+              ].map((s) => (
+                <div key={s.label} className="mb-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9.5px] text-[#9997AE]">{s.label}</span>
+                    <span className="font-mono text-[9px] text-[#67667C]">{s.value}</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-[#1B1B29]">
+                    <div className="h-full rounded-full bg-[#7C5CFF]" style={{ width: `${(s.value / 20) * 100}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className="mt-1 text-[9px] text-[#67667C] hover:text-[#9997AE]">Redefinir</button>
+            <p className="mt-1 text-[9px] text-[#67667C]">
+              Edição básica para ajustes rápidos. Para edições avançadas, abra o estúdio completo.
+            </p>
+          </section>
         </div>
       </div>
     </div>
   )
 }
 
-/* ------------------------------------------------------------------ */
-/* Studio (create) view — briefing, pipeline, preview, layers, audit   */
-/* Layout fixo (sem scroll de página): esquerda e direita viram abas,   */
-/* cada uma com scroll só internamente; a Peça (preview) fica sempre    */
-/* visível ao centro. Padrão "tela de app" (FlutterFlow), não site.     */
-/* ------------------------------------------------------------------ */
-
-const tabTransition = { duration: 0.16, ease: [0.16, 1, 0.3, 1] as const }
-
+// 3.2 STUDIO VIEW (com Briefing, Pipeline, Preview, Layers, Audit)
 function StudioView({
   running,
   state,
@@ -691,110 +704,155 @@ function StudioView({
   onRefineLayer,
   onDecideGate,
   onBack,
-}: {
-  running: boolean
-  state: ReturnType<typeof useProduction>["state"]
-  brandId: string
-  formatId: string
-  onBrandChange: (id: string) => void
-  onFormatChange: (id: string) => void
-  onProduce: (brief: string) => void
-  onStop: () => void
-  onRefineLayer: (key: string, note: string) => void
-  onDecideGate: (gateId: string, action: "approved" | "rejected", reviewer: string) => void
-  onBack: () => void
-}) {
+}: any) {
   const [leftTab, setLeftTab] = useState<"briefing" | "pipeline">("briefing")
   const [rightTab, setRightTab] = useState<"layers" | "audit">("layers")
+  const [brief, setBrief] = useState("")
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="flex shrink-0 items-center justify-between">
         <button
-          type="button"
           onClick={onBack}
-          className="flex items-center gap-1.5 text-[10.5px] font-medium text-[var(--lc-text-2)] hover:text-[var(--lc-text)]"
+          className="flex items-center gap-1.5 text-[10.5px] font-medium text-[#9997AE] hover:text-[#F4F3FA]"
         >
           ← Voltar para o início
         </button>
-        <StatusPill status={state.status} progress={state.progress} />
+        <div className="flex items-center gap-2 rounded-full border border-[#262636] bg-[#1B1B29] px-3 py-1.5">
+          <Activity
+            className={cn(
+              "h-3.5 w-3.5",
+              state.status === "running"
+                ? "animate-pulse text-[#B892FF]"
+                : state.status === "review"
+                ? "animate-pulse text-[#FF9A5A]"
+                : state.status === "done"
+                ? "text-emerald-400"
+                : "text-[#67667C]"
+            )}
+          />
+          <span className="font-mono text-[11px] text-[#9997AE]">
+            {state.status === "running"
+              ? `produzindo · ${state.progress}%`
+              : state.status === "review"
+              ? "aguardando aprovação"
+              : state.status === "done"
+              ? "peça pronta"
+              : "estúdio ocioso"}
+          </span>
+        </div>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-cols-12">
-        {/* Esquerda — Briefing / Pipeline */}
+        {/* Esquerda – Briefing / Pipeline */}
         <div className="flex min-h-0 flex-col gap-2 lg:col-span-5">
-          <TabBar
-            tabs={[
+          <div className="grid shrink-0 grid-cols-2 gap-1 rounded-lg border border-[#262636] bg-[#1B1B29]/40 p-1">
+            {[
               { id: "briefing", label: "Briefing" },
               { id: "pipeline", label: "Linha de produção" },
-            ]}
-            active={leftTab}
-            onChange={setLeftTab}
-            groupId="studio-left"
-          />
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
-            <AnimatePresence mode="wait">
-              {leftTab === "briefing" ? (
-                <motion.div key="briefing" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={tabTransition}>
-                  <BriefingComposer
-                    running={running}
-                    brandId={brandId}
-                    onBrandChange={onBrandChange}
-                    formatId={formatId}
-                    onFormatChange={onFormatChange}
-                    onProduce={onProduce}
-                    onStop={onStop}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div key="pipeline" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={tabTransition}>
-                  <PipelineTrack engineStatus={state.engineStatus} />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setLeftTab(tab.id as typeof leftTab)}
+                className={cn(
+                  "rounded-md py-1.5 text-[11px] font-medium transition-colors",
+                  leftTab === tab.id
+                    ? "bg-[#7C5CFF] text-white"
+                    : "text-[#9997AE] hover:text-[#F4F3FA]"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+            {leftTab === "briefing" ? (
+              <div className="space-y-3">
+                <textarea
+                  className="w-full rounded-lg border border-[#262636] bg-[#1B1B29] p-3 text-sm text-[#F4F3FA] placeholder:text-[#67667C]"
+                  rows={5}
+                  placeholder="Descreva sua ideia para a peça..."
+                  value={brief}
+                  onChange={(e) => setBrief(e.target.value)}
+                  disabled={running}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onProduce(brief)}
+                    disabled={!brief.trim() || running}
+                    className="flex-1 rounded-full bg-[#7C5CFF] py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {running ? "Produzindo..." : "Iniciar produção"}
+                  </button>
+                  {running && (
+                    <button
+                      onClick={onStop}
+                      className="rounded-full bg-[#FF5A5A] px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      Parar
+                    </button>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {SAMPLE_BRIEFS.map((sample, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setBrief(sample)}
+                      className="rounded-full border border-[#262636] px-2 py-0.5 text-[9px] text-[#9997AE] hover:bg-[#1B1B29]"
+                    >
+                      Exemplo {i + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <PipelineTrack engineStatus={state.engineStatus} />
+            )}
           </div>
         </div>
 
-        {/* Centro — Peça (preview), sempre visível */}
+        {/* Centro – Pré-visualização */}
         <div className="min-h-0 lg:col-span-3">
-          <div className="h-full overflow-y-auto overscroll-contain">
-            <ProductionPreview state={state} brandId={brandId} formatId={formatId} />
-          </div>
+          <ProductionPreview state={state} brandId={brandId} formatId={formatId} />
         </div>
 
-        {/* Direita — Camadas / Auditoria */}
+        {/* Direita – Camadas / Auditoria */}
         <div className="flex min-h-0 flex-col gap-2 lg:col-span-4">
-          <TabBar
-            tabs={[
+          <div className="grid shrink-0 grid-cols-2 gap-1 rounded-lg border border-[#262636] bg-[#1B1B29]/40 p-1">
+            {[
               { id: "layers", label: "Camadas" },
               { id: "audit", label: "Auditoria" },
-            ]}
-            active={rightTab}
-            onChange={setRightTab}
-            groupId="studio-right"
-          />
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
-            <AnimatePresence mode="wait">
-              {rightTab === "layers" ? (
-                <motion.div key="layers" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={tabTransition}>
-                  <LayersPanel
-                    doneLayers={state.doneLayers}
-                    layerVersions={state.layerVersions}
-                    logs={state.logs}
-                    onRefineLayer={onRefineLayer}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div key="audit" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={tabTransition}>
-                  <AuditPanel
-                    gates={state.gates}
-                    auditLog={state.auditLog}
-                    status={state.status}
-                    onDecideGate={onDecideGate}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setRightTab(tab.id as typeof rightTab)}
+                className={cn(
+                  "rounded-md py-1.5 text-[11px] font-medium transition-colors",
+                  rightTab === tab.id
+                    ? "bg-[#7C5CFF] text-white"
+                    : "text-[#9997AE] hover:text-[#F4F3FA]"
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-0.5">
+            {rightTab === "layers" ? (
+              <LayersPanel
+                doneLayers={state.doneLayers}
+                layerVersions={state.layerVersions}
+                logs={state.logs}
+                onRefineLayer={onRefineLayer}
+              />
+            ) : (
+              <AuditPanel
+                gates={state.gates}
+                auditLog={state.auditLog}
+                status={state.status}
+                onDecideGate={onDecideGate}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -802,76 +860,369 @@ function StudioView({
   )
 }
 
-/** Par de abas com destaque animado (spring) — usado nas colunas do Estúdio
- *  pra caber Briefing+Pipeline e Camadas+Auditoria sem empilhar tudo junto. */
-function TabBar<T extends string>({
-  tabs,
-  active,
-  onChange,
-  groupId,
-}: {
-  tabs: { id: T; label: string }[]
-  active: T
-  onChange: (id: T) => void
-  groupId: string
-}) {
+// ============================================================
+// 4. COMPONENTES AUXILIARES DO STUDIO
+// ============================================================
+
+function PipelineTrack({ engineStatus }: { engineStatus: any }) {
+  // Mapeia os módulos e seus motores
+  const modules = MODULES.map((mod) => ({
+    ...mod,
+    engines: ENGINES.filter((e) => e.module === mod.id),
+  }))
+
   return (
-    <div className="grid shrink-0 grid-cols-2 gap-1 rounded-lg border border-border bg-secondary/40 p-1">
-      {tabs.map((t) => {
-        const isActive = active === t.id
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => onChange(t.id)}
-            className={cn(
-              "relative rounded-md py-1.5 text-[11px] font-medium transition-colors",
-              isActive ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {isActive && (
-              <motion.span
-                layoutId={`${groupId}-tab-highlight`}
-                className="absolute inset-0 rounded-md bg-primary"
-                transition={{ type: "spring", stiffness: 500, damping: 34 }}
-              />
-            )}
-            <span className="relative z-10">{t.label}</span>
-          </button>
-        )
-      })}
+    <div className="flex flex-col gap-3">
+      {modules.map((mod) => (
+        <div key={mod.id} className="rounded-lg border border-[#262636] p-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium">{mod.name}</span>
+            <span className="text-[9px] text-[#67667C]">{mod.role}</span>
+          </div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {mod.engines.map((eng) => {
+              const status = engineStatus?.[eng.id] || "idle"
+              const statusColor =
+                status === "done"
+                  ? "bg-emerald-400/20 text-emerald-300"
+                  : status === "running"
+                  ? "bg-[#B892FF]/20 text-[#B892FF] animate-pulse"
+                  : "bg-[#262636] text-[#67667C]"
+              return (
+                <span
+                  key={eng.id}
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[8px] font-medium",
+                    statusColor
+                  )}
+                >
+                  {eng.name}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
 
-function StatusPill({ status, progress }: { status: string; progress: number }) {
-  const label =
-    status === "running"
-      ? `produzindo · ${progress}%`
-      : status === "review"
-        ? "aguardando aprovação"
-        : status === "done"
-          ? "peça pronta"
-          : "estúdio ocioso"
+function ProductionPreview({ state, brandId, formatId }: any) {
+  const format = FORMATS.find((f) => f.id === formatId)
+  const brand = BRAND_KITS.find((b) => b.id === brandId)
 
   return (
-    <div className="flex items-center gap-2 rounded-full border border-[var(--lc-border)] bg-[var(--lc-raised)] px-3 py-1.5">
-      <Activity
-        className={cn(
-          "h-3.5 w-3.5",
-          status === "running"
-            ? "animate-pulse text-[var(--lc-violet-2)]"
-            : status === "review"
-              ? "animate-pulse text-[var(--lc-ember)]"
-              : status === "done"
-                ? "text-emerald-400"
-                : "text-[var(--lc-text-3)]",
+    <div className="flex h-full flex-col items-center justify-center rounded-xl border border-[#262636] bg-[#1B1B29]/30 p-2">
+      <div
+        className="relative flex w-full items-center justify-center overflow-hidden rounded-lg bg-[#0B0B12]"
+        style={{
+          aspectRatio: format?.ratio === "9:16" ? "9/16" : "16/9",
+          maxHeight: "100%",
+        }}
+      >
+        {state.status === "idle" ? (
+          <div className="flex flex-col items-center gap-2 text-[#67667C]">
+            <Eye className="h-8 w-8" />
+            <span className="text-xs">Pré-visualização</span>
+          </div>
+        ) : state.status === "running" ? (
+          <div className="flex flex-col items-center gap-2">
+            <RefreshCw className="h-8 w-8 animate-spin text-[#B892FF]" />
+            <span className="text-xs text-[#9997AE]">Gerando peça...</span>
+          </div>
+        ) : state.status === "done" ? (
+          <div className="flex flex-col items-center gap-2">
+            <CheckCircle className="h-8 w-8 text-emerald-400" />
+            <span className="text-xs text-emerald-300">Peça pronta!</span>
+          </div>
+        ) : (
+          <div className="text-xs text-[#9997AE]">{state.status}</div>
         )}
-        aria-hidden
-      />
-      <span className="font-[var(--font-mono,'JetBrains_Mono',monospace)] text-[11px] text-[var(--lc-text-2)]">
-        {label}
-      </span>
+        {brand && (
+          <div className="absolute bottom-1 right-1 rounded bg-black/50 px-1.5 py-0.5 text-[8px] text-[#9997AE]">
+            {brand.name}
+          </div>
+        )}
+        {format && (
+          <div className="absolute bottom-1 left-1 rounded bg-black/50 px-1.5 py-0.5 text-[8px] text-[#9997AE]">
+            {format.name} · {format.ratio}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function LayersPanel({ doneLayers, layerVersions, logs, onRefineLayer }: any) {
+  const layers = LAYERS.map((layer) => ({
+    ...layer,
+    done: doneLayers?.includes(layer.key) || false,
+    version: layerVersions?.[layer.key] || 1,
+  }))
+
+  return (
+    <div className="flex flex-col gap-2">
+      {layers.map((layer) => (
+        <div
+          key={layer.key}
+          className={cn(
+            "flex items-center justify-between rounded-lg border p-2",
+            layer.done ? "border-emerald-400/30 bg-emerald-400/5" : "border-[#262636]"
+          )}
+        >
+          <div>
+            <p className="text-[11px] font-medium">{layer.name}</p>
+            <p className="text-[9px] text-[#67667C]">{layer.detail}</p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {layer.done ? (
+              <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
+            ) : (
+              <Clock className="h-3.5 w-3.5 text-[#67667C]" />
+            )}
+            <span className="text-[9px] text-[#67667C]">v{layer.version}</span>
+          </div>
+        </div>
+      ))}
+      {logs && logs.length > 0 && (
+        <div className="mt-2 rounded-lg border border-[#262636] bg-[#1B1B29]/30 p-2">
+          <p className="text-[9px] font-medium text-[#9997AE]">Últimos logs</p>
+          <ul className="mt-1 max-h-20 overflow-y-auto text-[9px] text-[#67667C]">
+            {logs.slice(-3).map((log: string, i: number) => (
+              <li key={i}>• {log}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AuditPanel({ gates, auditLog, status, onDecideGate }: any) {
+  return (
+    <div className="flex flex-col gap-3">
+      {AUDIT_GATES.map((gate) => {
+        const result = gates?.[gate.id]?.result || "pending"
+        return (
+          <div
+            key={gate.id}
+            className={cn(
+              "rounded-lg border p-2",
+              result === "approved"
+                ? "border-emerald-400/30 bg-emerald-400/5"
+                : result === "rejected"
+                ? "border-red-400/30 bg-red-400/5"
+                : "border-[#262636]"
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-medium">{gate.name}</span>
+              <span className="text-[9px] text-[#67667C]">{gate.threshold}%</span>
+            </div>
+            <ul className="mt-1 list-disc pl-4 text-[9px] text-[#67667C]">
+              {gate.criteria.map((c: string) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+            {status === "review" && result === "pending" && (
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => onDecideGate(gate.id, "approved", "Lucas")}
+                  className="flex-1 rounded-full bg-emerald-400/20 py-1 text-[10px] font-medium text-emerald-300"
+                >
+                  Aprovar
+                </button>
+                <button
+                  onClick={() => onDecideGate(gate.id, "rejected", "Lucas")}
+                  className="flex-1 rounded-full bg-red-400/20 py-1 text-[10px] font-medium text-red-300"
+                >
+                  Rejeitar
+                </button>
+              </div>
+            )}
+            {result !== "pending" && (
+              <div className="mt-1 flex items-center gap-1">
+                {result === "approved" ? (
+                  <CheckCircle className="h-3 w-3 text-emerald-400" />
+                ) : (
+                  <XCircle className="h-3 w-3 text-red-400" />
+                )}
+                <span className="text-[9px] text-[#67667C]">
+                  {result === "approved" ? "Aprovado" : "Rejeitado"}
+                </span>
+              </div>
+            )}
+          </div>
+        )
+      })}
+      {auditLog && auditLog.length > 0 && (
+        <div className="rounded-lg border border-[#262636] p-2">
+          <p className="text-[9px] font-medium text-[#9997AE]">Histórico</p>
+          {auditLog.slice(-3).map((entry: any, i: number) => (
+            <div key={i} className="text-[8px] text-[#67667C]">
+              • {entry.gateId} – {entry.action} por {entry.reviewer}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================================
+// 5. OUTRAS VIEWS (Vídeo, Peças, Pipeline, Consentimento, Arquitetura)
+// ============================================================
+
+function VideoLabView() {
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <h2 className="font-display text-lg font-semibold">Laboratório de Vídeo</h2>
+      <div className="grid flex-1 grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="rounded-xl border border-[#262636] bg-[#14141F] p-4">
+          <div className="flex items-center gap-2">
+            <Video className="h-5 w-5 text-[#B892FF]" />
+            <h3 className="font-medium">Editor de vídeo</h3>
+          </div>
+          <div className="mt-4 flex aspect-video items-center justify-center rounded-lg bg-[#1B1B29] text-[#67667C]">
+            <Play className="h-8 w-8" />
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button className="flex-1 rounded-lg border border-[#262636] py-1.5 text-sm text-[#9997AE]">
+              Importar
+            </button>
+            <button className="flex-1 rounded-lg bg-[#7C5CFF] py-1.5 text-sm font-semibold text-white">
+              Editar
+            </button>
+          </div>
+        </div>
+        <div className="rounded-xl border border-[#262636] bg-[#14141F] p-4">
+          <h3 className="font-medium">Biblioteca de mídia</h3>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="aspect-square rounded-lg bg-[#1B1B29]" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function GraphicsLabView() {
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <h2 className="font-display text-lg font-semibold">Laboratório de Peças</h2>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {FORMATS.map((f) => (
+          <div key={f.id} className="rounded-xl border border-[#262636] bg-[#14141F] p-4 text-center">
+            <LayoutTemplate className="mx-auto h-8 w-8 text-[#B892FF]" />
+            <p className="mt-2 font-medium">{f.name}</p>
+            <p className="text-xs text-[#67667C]">{f.ratio}</p>
+            <button className="mt-2 w-full rounded-full bg-[#7C5CFF]/20 py-1 text-xs font-medium text-[#B892FF]">
+              Criar
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RealPipelineView() {
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <h2 className="font-display text-lg font-semibold">Pipeline em tempo real</h2>
+      <div className="flex-1 overflow-y-auto">
+        <div className="space-y-3">
+          {MODULES.map((mod) => (
+            <div key={mod.id} className="rounded-xl border border-[#262636] bg-[#14141F] p-4">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{mod.name}</span>
+                <span className="text-xs text-[#67667C]">{mod.role}</span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {ENGINES.filter((e) => e.module === mod.id).map((eng) => (
+                  <span
+                    key={eng.id}
+                    className="rounded-full bg-[#1B1B29] px-2 py-0.5 text-xs text-[#9997AE]"
+                  >
+                    {eng.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConsentManagerView() {
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <h2 className="font-display text-lg font-semibold">Gerenciador de Consentimento</h2>
+      <div className="rounded-xl border border-[#262636] bg-[#14141F] p-4">
+        <h3 className="font-medium">Permissões de uso de imagem e voz</h3>
+        <p className="mt-1 text-sm text-[#9997AE]">
+          Gerencie os consentimentos para geração de avatares e locuções.
+        </p>
+        <div className="mt-4 space-y-2">
+          {[
+            { id: "1", name: "Avatar - João", status: "consentido" },
+            { id: "2", name: "Avatar - Maria", status: "pendente" },
+            { id: "3", name: "Voz - Locutor padrão", status: "consentido" },
+          ].map((item) => (
+            <div key={item.id} className="flex items-center justify-between rounded-lg border border-[#262636] p-2">
+              <span className="text-sm">{item.name}</span>
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-xs font-medium",
+                  item.status === "consentido"
+                    ? "bg-emerald-400/20 text-emerald-300"
+                    : "bg-amber-400/20 text-amber-300"
+                )}
+              >
+                {item.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ArchitectureView() {
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <h2 className="font-display text-lg font-semibold">Arquitetura do Sistema</h2>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="rounded-xl border border-[#262636] bg-[#14141F] p-4">
+          <h3 className="font-medium">Módulos</h3>
+          <ul className="mt-2 space-y-1 text-sm text-[#9997AE]">
+            {MODULES.map((m) => (
+              <li key={m.id}>• {m.name} – {m.role}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-xl border border-[#262636] bg-[#14141F] p-4">
+          <h3 className="font-medium">Motores de IA</h3>
+          <ul className="mt-2 space-y-1 text-sm text-[#9997AE]">
+            {ENGINES.slice(0, 6).map((e) => (
+              <li key={e.id}>• {e.name} ({e.role})</li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-xl border border-[#262636] bg-[#14141F] p-4">
+          <h3 className="font-medium">Camadas</h3>
+          <ul className="mt-2 space-y-1 text-sm text-[#9997AE]">
+            {LAYERS.slice(0, 6).map((l) => (
+              <li key={l.key}>• {l.name}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   )
 }
