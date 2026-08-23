@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { Activity, Lock, Clapperboard, Network, Video, ShieldCheck, LayoutTemplate } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Activity, Lock, Clapperboard, Network, Video, ShieldCheck, LayoutTemplate, UserRound, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BRAND_KITS, FORMATS } from "@/lib/studio-data"
 import { useProduction } from "@/lib/use-production"
+import { useAuth } from "@/lib/auth/auth-context"
 import { BrandMark } from "./brand-mark"
 import { BriefingComposer } from "./briefing-composer"
 import { PipelineTrack } from "./pipeline-track"
@@ -14,7 +16,6 @@ import { AuditPanel } from "./audit-panel"
 import { ArchitectureBlueprint } from "./architecture-blueprint"
 import { VideoLab } from "./video-lab"
 import { ConsentManager } from "./consent-manager"
-import { LoginGate } from "./login-gate"
 import { RealPipelinePanel } from "./real-pipeline-panel"
 import { GraphicsLab } from "./graphics-lab"
 
@@ -30,12 +31,8 @@ export function StudioShell() {
 
   const handleProduce = (brief: string) => start(brief, brandId)
   const handleStop = () => reset()
-  const handleBrandChange = (id: string) => {
-    if (!running) setBrandId(id)
-  }
-  const handleFormatChange = (id: string) => {
-    if (!running) setFormatId(id)
-  }
+  const handleBrandChange = (id: string) => { if (!running) setBrandId(id) }
+  const handleFormatChange = (id: string) => { if (!running) setFormatId(id) }
 
   return (
     <div className="min-h-screen">
@@ -50,6 +47,8 @@ export function StudioShell() {
           <RealPipelinePanel />
         ) : view === "graphics" ? (
           <GraphicsLab />
+        ) : view === "consent" ? (
+          <ConsentManager />
         ) : (
           <StudioView
             running={running}
@@ -146,6 +145,31 @@ function StudioView({
   )
 }
 
+function UserMenu() {
+  const { session, logout } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = () => {
+    logout()
+    router.push("/studio/login")
+  }
+
+  if (!session) return null
+
+  return (
+    <button
+      type="button"
+      onClick={handleLogout}
+      className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] text-muted-foreground transition hover:border-destructive/40 hover:text-destructive"
+      title="Sair"
+    >
+      <UserRound className="h-3.5 w-3.5" aria-hidden />
+      <span className="hidden sm:inline">{session.email}</span>
+      <LogOut className="h-3 w-3" aria-hidden />
+    </button>
+  )
+}
+
 function Header({
   status,
   progress,
@@ -163,13 +187,9 @@ function Header({
       : view === "video"
         ? "Vídeo · Render local"
         : "Fase 0 · MVP"
-  /**
-   * Correção pós-auditoria (Isolamento de Tenants): a aba "Arquitetura"
-   * expõe o diagrama interno do sistema — só faz sentido pra demos/uso
-   * interno da equipe, não pro cliente final. Some por padrão em produção
-   * a menos que explicitamente habilitada.
-   */
+
   const showInternalViews = process.env.NEXT_PUBLIC_SHOW_INTERNAL_VIEWS === "true"
+
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
@@ -177,38 +197,13 @@ function Header({
 
         {/* switcher de views */}
         <nav className="ml-2 hidden items-center gap-1 rounded-full border border-border bg-card p-1 md:flex">
-          <ViewTab
-            active={view === "studio"}
-            onClick={() => onViewChange("studio")}
-            icon={Clapperboard}
-            label="Estúdio"
-          />
-          <ViewTab
-            active={view === "video"}
-            onClick={() => onViewChange("video")}
-            icon={Video}
-            label="Vídeo"
-          />
+          <ViewTab active={view === "studio"} onClick={() => onViewChange("studio")} icon={Clapperboard} label="Estúdio" />
+          <ViewTab active={view === "video"} onClick={() => onViewChange("video")} icon={Video} label="Vídeo" />
+          <ViewTab active={view === "real"} onClick={() => onViewChange("real")} icon={ShieldCheck} label="Pipeline real" />
+          <ViewTab active={view === "graphics"} onClick={() => onViewChange("graphics")} icon={LayoutTemplate} label="Peças" />
           {showInternalViews ? (
-            <ViewTab
-              active={view === "architecture"}
-              onClick={() => onViewChange("architecture")}
-              icon={Network}
-              label="Arquitetura"
-            />
+            <ViewTab active={view === "architecture"} onClick={() => onViewChange("architecture")} icon={Network} label="Arquitetura" />
           ) : null}
-          <ViewTab
-            active={view === "real"}
-            onClick={() => onViewChange("real")}
-            icon={ShieldCheck}
-            label="Pipeline real"
-          />
-          <ViewTab
-            active={view === "graphics"}
-            onClick={() => onViewChange("graphics")}
-            icon={LayoutTemplate}
-            label="Peças"
-          />
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
@@ -244,7 +239,8 @@ function Header({
             <span className="font-mono text-[11px] font-medium text-primary">{phaseLabel}</span>
           </div>
 
-          <LoginGate />
+          {/* usuário logado / logout */}
+          <UserMenu />
         </div>
       </div>
     </header>

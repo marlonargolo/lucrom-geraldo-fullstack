@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-@import 'shadcn/tailwind.css';
+
 
 @custom-variant dark (&:is(.dark *));
 
@@ -95,8 +95,8 @@
   --card-foreground: oklch(0.96 0.004 100);
   --popover: oklch(0.19 0.009 265);
   --popover-foreground: oklch(0.96 0.004 100);
-  --primary: oklch(0.82 0.145 78);
-  --primary-foreground: oklch(0.22 0.03 80);
+  --primary: oklch(0.55 0.24 277);
+  --primary-foreground: oklch(0.98 0.01 277);
   --secondary: oklch(0.25 0.009 265);
   --secondary-foreground: oklch(0.96 0.004 100);
   --muted: oklch(0.24 0.008 265);
@@ -109,20 +109,20 @@
   --warning: oklch(0.8 0.13 75);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.82 0.145 78);
-  --chart-1: oklch(0.82 0.145 78);
+  --ring: oklch(0.55 0.24 277);
+  --chart-1: oklch(0.55 0.24 277);
   --chart-2: oklch(0.72 0.15 155);
   --chart-3: oklch(0.62 0.2 25);
   --chart-4: oklch(0.65 0.11 240);
   --chart-5: oklch(0.6 0.01 265);
   --sidebar: oklch(0.18 0.009 265);
   --sidebar-foreground: oklch(0.96 0.004 100);
-  --sidebar-primary: oklch(0.82 0.145 78);
-  --sidebar-primary-foreground: oklch(0.22 0.03 80);
+  --sidebar-primary: oklch(0.55 0.24 277);
+  --sidebar-primary-foreground: oklch(0.98 0.01 277);
   --sidebar-accent: oklch(0.26 0.01 265);
   --sidebar-accent-foreground: oklch(0.96 0.004 100);
   --sidebar-border: oklch(1 0 0 / 9%);
-  --sidebar-ring: oklch(0.82 0.145 78);
+  --sidebar-ring: oklch(0.55 0.24 277);
 }
 
 /* ─── Light Theme escopado à fanpage pública (app/page.tsx) ────────────────

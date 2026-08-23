@@ -85,33 +85,43 @@ function forceTenantIdInQuery(search: string, realTenantId: string): string {
 }
 
 async function handle(req: NextRequest, path: string[]) {
-  const auth = requireUser(req)
-  if (!auth.ok) return auth.response
-
   if (!API_BASE_URL || !API_TOKEN) {
-    return NextResponse.json({ error: "Backend não configurado neste servidor (API_TOKEN ausente)." }, { status: 501 })
+    return NextResponse.json({ error: 'Backend não configurado neste servidor (API_TOKEN ausente).' }, { status: 501 })
   }
 
-  const targetPath = forceTenantIdInPath(path.join("/"), auth.user.tenantId)
-  const search = forceTenantIdInQuery(req.nextUrl.search, auth.user.tenantId)
-  let body: unknown = undefined
+  const fullPath = path.join('/')
+  const isPublicAuth =
+    fullPath === 'api/v1/auth/login' || fullPath === 'api/v1/auth/register'
 
-  // PATCH entrou junto com o módulo Ajuste Rápido Humano (PATCH .../layers,
-  // edição determinística sem IA) — mesmo tratamento de corpo/tenant do
-  // POST, já que os dois métodos aqui só existem pra escrever dado do
-  // próprio tenant autenticado.
-  if (req.method === "POST" || req.method === "PATCH") {
+  // Rotas protegidas exigem JWT válido
+  let realTenantId = ''
+  if (!isPublicAuth) {
+    const auth = requireUser(req)
+    if (!auth.ok) return auth.response
+    realTenantId = auth.user.tenantId
+  }
+
+  const targetPath = isPublicAuth
+    ? fullPath
+    : forceTenantIdInPath(fullPath, realTenantId)
+
+  const search = isPublicAuth ? req.nextUrl.search : forceTenantIdInQuery(req.nextUrl.search, realTenantId)
+
+  let body: unknown = undefined
+  if (req.method === 'POST' || req.method === 'PATCH') {
     const parsed = await req.json().catch(() => ({}))
-    body = forceTenantIdInBody(targetPath, (parsed ?? {}) as Record<string, unknown>, auth.user.tenantId)
+    body = isPublicAuth
+      ? parsed
+      : forceTenantIdInBody(targetPath, (parsed ?? {}) as Record<string, unknown>, realTenantId)
   }
 
   try {
     const res = await fetch(`${API_BASE_URL}/${targetPath}${search}`, {
       method: req.method,
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${API_TOKEN}`,
-        "X-User-Token": req.headers.get("x-user-token") ?? "",
+        'X-User-Token': req.headers.get('x-user-token') ?? '',
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     })
@@ -119,7 +129,7 @@ async function handle(req: NextRequest, path: string[]) {
     return NextResponse.json(responseBody, { status: res.status })
   } catch (err) {
     console.error(`[backend-proxy] falha de rede chamando ${targetPath}:`, err)
-    return NextResponse.json({ error: "Backend indisponível no momento. Tente novamente." }, { status: 503 })
+    return NextResponse.json({ error: 'Backend indisponível no momento. Tente novamente.' }, { status: 503 })
   }
 }
 

@@ -11,7 +11,7 @@ const spaceGrotesk = Space_Grotesk({
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'LUCROM Studio AI — Agência de IA',
+  title: 'Creatai.',
   description:
     'Estúdio de produção audiovisual operado por IA. Do briefing à peça publicitária pronta, em camadas, com padrão de agência.',
   generator: 'v0.app',

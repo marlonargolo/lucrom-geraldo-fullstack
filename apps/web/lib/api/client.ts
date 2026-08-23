@@ -54,28 +54,32 @@ export function isApiConfigured(): boolean {
 }
 
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const session = getSession();
-  if (!session) {
-    throw new ApiError('Faça login para usar este recurso.', 401);
+  const session = getSession()
+
+  // Rotas públicas de auth não exigem sessão
+  const isPublicAuthRoute =
+    path.includes('/auth/login') || path.includes('/auth/register')
+
+  if (!session && !isPublicAuthRoute) {
+    throw new ApiError('Faça login para usar este recurso.', 401)
   }
 
-  // path já vem como "/api/v1/..." nos call-sites — remove a barra dupla ao concatenar.
-  const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path
 
   const res = await fetch(`${PROXY_BASE_URL}/${normalizedPath}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Token': session.accessToken,
+      ...(session ? { 'X-User-Token': session.accessToken } : {}),
       ...(init?.headers ?? {}),
     },
-  });
+  })
 
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new ApiError(`API ${path} respondeu ${res.status}: ${body}`, res.status);
+    const body = await res.text().catch(() => '')
+    throw new ApiError(`API ${path} respondeu ${res.status}: ${body}`, res.status)
   }
 
-  if (res.status === 204) return undefined as unknown as T;
-  return (await res.json()) as T;
+  if (res.status === 204) return undefined as unknown as T
+  return (await res.json()) as T
 }
