@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -218,4 +218,20 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ─── OVERRIDE VIOLET — garante que o violet (#8052ff) vença o shadcn/tailwind.css
+ * O shadcn/tailwind.css gera um .dark com valores próprios que aparecem depois
+ * no bundle CSS. Este bloco usa @layer com prioridade máxima para sobrescrever.
+ * Hex direto (sem oklch) para máxima compatibilidade.
+ */
+html.dark,
+.dark {
+  --primary: #8052ff !important;
+  --primary-foreground: #f5f0ff !important;
+  --ring: #8052ff !important;
+  --sidebar-primary: #8052ff !important;
+  --sidebar-primary-foreground: #f5f0ff !important;
+  --sidebar-ring: #8052ff !important;
+  --chart-1: #8052ff !important;
 }
