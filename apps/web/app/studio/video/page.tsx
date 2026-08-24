@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Upload, Play, Scissors, Palette, Type, Layers, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -16,13 +16,26 @@ const MEDIA_SLOTS = Array.from({ length: 6 })
 export default function VideoPage() {
   const [hasVideo, setHasVideo] = useState(false)
   const [activeTool, setActiveTool] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // Detectar se é mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768) // 768px é o breakpoint comum para mobile
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <h1 className="mb-4 text-lg font-bold text-foreground">Laboratório de Vídeo</h1>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[1fr_320px] gap-4 overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden md:grid-cols-[1fr_320px]">
         {/* Editor */}
         <div className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-2">
@@ -76,52 +89,91 @@ export default function VideoPage() {
           </div>
           <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={() => setHasVideo(true)} />
 
-          {/* Actions */}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="flex-1 rounded-xl border border-border bg-background py-2.5 text-[13px] font-medium text-foreground transition hover:bg-accent active:scale-[0.98]"
-            >
-              Importar
-            </button>
-            <button
-              type="button"
-              disabled={!hasVideo}
-              className="flex-1 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-40 active:scale-[0.98]"
-            >
-              Editar
-            </button>
-            <button
-              type="button"
-              disabled={!hasVideo}
-              className="rounded-xl border border-border bg-background px-3 py-2.5 text-muted-foreground transition hover:text-foreground disabled:opacity-40 active:scale-95"
-              title="Exportar"
-            >
-              <Download className="h-4 w-4" />
-            </button>
-          </div>
+          {/* Actions - Mobile */}
+          {isMobile && (
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="w-full rounded-xl bg-primary py-3 text-[13px] font-semibold text-primary-foreground transition hover:brightness-110 active:scale-[0.98]"
+              >
+                Adicionar Vídeo
+              </button>
+            </div>
+          )}
+
+          {/* Actions - Desktop */}
+          {!isMobile && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="flex-1 rounded-xl border border-border bg-background py-2.5 text-[13px] font-medium text-foreground transition hover:bg-accent active:scale-[0.98]"
+              >
+                Importar
+              </button>
+              <button
+                type="button"
+                disabled={!hasVideo}
+                className="flex-1 rounded-xl bg-primary py-2.5 text-[13px] font-semibold text-primary-foreground transition hover:brightness-110 disabled:opacity-40 active:scale-[0.98]"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                disabled={!hasVideo}
+                className="rounded-xl border border-border bg-background px-3 py-2.5 text-muted-foreground transition hover:text-foreground disabled:opacity-40 active:scale-95"
+                title="Exportar"
+              >
+                <Download className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Biblioteca */}
-        <div className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card p-4">
-          <span className="text-[13px] font-semibold text-foreground">Biblioteca de mídia</span>
-          <div className="grid min-h-0 flex-1 grid-cols-3 gap-2 overflow-auto content-start">
-            {MEDIA_SLOTS.map((_, i) => (
-              <div
-                key={i}
-                className="aspect-square cursor-pointer rounded-lg border border-border bg-background transition-all hover:border-primary/40 hover:shadow-sm active:scale-95"
-              />
-            ))}
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="aspect-square flex items-center justify-center rounded-lg border-2 border-dashed border-border bg-background text-muted-foreground transition hover:border-primary/40 hover:text-primary active:scale-95"
-            >
-              <Upload className="h-4 w-4" />
-            </button>
+        {/* Biblioteca - Mobile */}
+        {isMobile && (
+          <div className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card p-4">
+            <span className="text-[13px] font-semibold text-foreground">Biblioteca de mídia</span>
+            <div className="grid min-h-0 flex-1 grid-cols-3 gap-2 overflow-auto content-start">
+              {MEDIA_SLOTS.map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square cursor-pointer rounded-lg border border-border bg-background transition-all hover:border-primary/40 hover:shadow-sm active:scale-95"
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="aspect-square flex items-center justify-center rounded-lg border-2 border-dashed border-border bg-background text-muted-foreground transition hover:border-primary/40 hover:text-primary active:scale-95"
+              >
+                <Upload className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Biblioteca - Desktop */}
+        {!isMobile && (
+          <div className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-2xl border border-border bg-card p-4">
+            <span className="text-[13px] font-semibold text-foreground">Biblioteca de mídia</span>
+            <div className="grid min-h-0 flex-1 grid-cols-3 gap-2 overflow-auto content-start">
+              {MEDIA_SLOTS.map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square cursor-pointer rounded-lg border border-border bg-background transition-all hover:border-primary/40 hover:shadow-sm active:scale-95"
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="aspect-square flex items-center justify-center rounded-lg border-2 border-dashed border-border bg-background text-muted-foreground transition hover:border-primary/40 hover:text-primary active:scale-95"
+              >
+                <Upload className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
