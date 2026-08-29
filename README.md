@@ -72,3 +72,7 @@ npm run start:worker  # processo Worker (outro terminal)
 # Frontend
 cd apps/web && npm install && npm run dev
 ```
+
+
+
+tokenklingmarlon=api-key-kling-k5vwZzSSVDZwCnZXAEi7ckQ_1kJTQiB7Uh4tM2HLaxc

@@ -128,7 +128,8 @@ export class StorageService implements OnModuleInit {
     if (this.useLocalFs) {
       return `file://${LOCAL_STORAGE_DIR}/${key.replace(/\//g, '_')}`;
     }
-    return this.client!.presignedGetObject(this.bucket, key, expirySeconds);
+    const publicUrl = this.config.get("s3").publicUrl ?? "http://minio:9000";
+    return Promise.resolve(`${publicUrl}/${this.bucket}/${key}`);
   }
 
   /**

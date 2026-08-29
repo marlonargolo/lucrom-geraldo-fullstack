@@ -38,12 +38,9 @@ function forceTenantIdInBody(path: string, body: Record<string, unknown>, realTe
   const needsOverride =
     path === "api/v1/consent" ||
     path === "api/v1/engines/m8/ai-video/generate" ||
-    // Ajuste Rápido Humano — PATCH .../layers também aceita tenant_id cru no
-    // corpo (mesmo contrato de compose()); força pro tenant real do JWT
-    // pelo mesmo motivo dos dois de cima.
     /^api\/v1\/graphics\/[^/]+\/layers$/.test(path)
   if (!needsOverride) return body
-  return { ...body, tenant_id: realTenantId }
+  return { ...body, tenant_id: realTenantId, tenantId: realTenantId }
 }
 
 /**

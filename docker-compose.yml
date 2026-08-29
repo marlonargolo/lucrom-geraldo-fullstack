@@ -1,23 +1,5 @@
 version: '3.9'
 
-# ─────────────────────────────────────────────────────────────────────────────
-# LUCROM Studio AI — stack unificada (Frontend + Backend + Infra)
-#
-#   postgres  → Postgres 15 (dados de tenants, media_assets, audit_logs,
-#               ai_generation_jobs, scripts, graphic_compositions etc.)
-#   redis     → Redis 7 (broker das filas BullMQ)
-#   api       → API NestJS (HTTP). Aceita requisições, retorna 202 Accepted
-#               na geração assíncrona de IA, expõe o webhook de callback.
-#   worker    → MESMA imagem da API, rodando `dist/worker-main.js`: consome
-#               jobs:render:high_priority, jobs:render:standard (pipeline M8)
-#               e jobs-video-render (pós-processamento FFmpeg da IA assíncrona).
-#   web       → Frontend Next.js (lucrom-studio-frontend).
-#
-# Uso:
-#   cp apps/api/.env.example apps/api/.env   # preencher os segredos
-#   docker compose up --build
-# ─────────────────────────────────────────────────────────────────────────────
-
 services:
   postgres:
     image: postgres:15
@@ -100,12 +82,29 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_BASE_URL: http://api:3000
+      JWT_SECRET: jwt-secret-dev-2026
+      API_TOKEN: lucrom-dev-secret-2026
+      REDIS_URL: redis://redis:6379
     env_file:
       - ./apps/api/.env
     ports:
       - '3001:3001'
     depends_on:
       - api
+  
+  minio:
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: lucrom
+      MINIO_ROOT_PASSWORD: lucrom123
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/data
 
 volumes:
   postgres_data:
+  minio_data:

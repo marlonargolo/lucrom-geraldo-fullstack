@@ -129,8 +129,7 @@ export default () => ({
     // Kling AI (Kuaishou) — API oficial direta. Autenticação via JWT
     // assinado com Access Key ID + Access Key Secret (não é um Bearer
     // estático — o token é gerado por requisição, ver kling-client.service.ts).
-    klingAccessKeyId: process.env.KLING_ACCESS_KEY_ID ?? '',
-    klingAccessKeySecret: process.env.KLING_ACCESS_KEY_SECRET ?? '',
+    klingApiKey: process.env.KLING_API_KEY ?? '',
     klingBaseUrl: process.env.KLING_BASE_URL ?? 'https://api-singapore.klingai.com',
     klingModel: process.env.KLING_MODEL ?? 'kling-v1',
     /** Falhas consecutivas do Kling antes de o circuit breaker acionar o fallback pro MiniMax. */

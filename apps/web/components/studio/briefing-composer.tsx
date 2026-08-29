@@ -3,13 +3,15 @@
 import { useEffect, useRef, useState } from "react"
 import { Mic, MicOff, Sparkles, CornerDownLeft, Square } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { BRAND_KITS, FORMATS, TONES, SAMPLE_BRIEFS } from "@/lib/studio-data"
-import { apiFetch, isApiConfigured, DEFAULT_TENANT_ID } from "@/lib/api/client"
+import { FORMATS, TONES, SAMPLE_BRIEFS } from "@/lib/studio-data"
+import { apiFetch, isApiConfigured } from "@/lib/api/client"
 import { generateAdViaApi, type AdTextProvider, type GenerateAdResult } from "@/lib/ai/generate-ad-client"
 import { useQuota } from "@/lib/usage/use-quota"
 import { QuotaBadge } from "./quota-badge"
 import { UpgradeModal } from "./upgrade-modal"
 import { QuotaExceededError } from "@/lib/billing/quota-error"
+import { brandClient, type BrandKit } from "@/lib/production/brand-client"
+import { getSession } from "@/lib/auth/session-store"
 
 interface Props {
   running: boolean
@@ -19,6 +21,7 @@ interface Props {
   onFormatChange: (id: string) => void
   onProduce: (brief: string) => void
   onStop: () => void
+  onJobCreated?: (jobId: string) => void
 }
 
 export function BriefingComposer({
@@ -29,11 +32,12 @@ export function BriefingComposer({
   onFormatChange,
   onProduce,
   onStop,
+  onJobCreated,
 }: Props) {
   const [brief, setBrief] = useState("")
   const [tone, setTone] = useState<string>(TONES[0])
+  const [realBrands, setRealBrands] = useState<BrandKit[]>([])
 
-  // ---- Anúncio MEI rápido (lib/ai/prompt-layer.ts) — preenche o brief acima ----
   const [meiBusinessType, setMeiBusinessType] = useState("")
   const [meiOffer, setMeiOffer] = useState("")
   const [meiLoading, setMeiLoading] = useState(false)
@@ -43,29 +47,34 @@ export function BriefingComposer({
   const meiAbortRef = useRef<AbortController | null>(null)
   const meiQuota = useQuota()
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
-
-  // Status da chamada real ao serviço de renderização assíncrona (best-effort,
-  // não bloqueia nem substitui a simulação local em `onProduce`).
   const [asyncRenderNote, setAsyncRenderNote] = useState<string | null>(null)
 
-  // ---- Ditar por voz (Web Speech API) -------------------------------------
   const [listening, setListening] = useState(false)
   const [voiceSupported, setVoiceSupported] = useState(true)
   const recognitionRef = useRef<any>(null)
   const baseBriefRef = useRef("")
 
+  // Carrega brand kits reais do backend
+  useEffect(() => {
+    brandClient.list()
+      .then((brands) => {
+        setRealBrands(brands)
+        // Se tem brands reais e o brandId atual é um mock, troca pelo primeiro real
+        if (brands.length > 0) {
+          onBrandChange(brands[0].id)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   useEffect(() => {
     if (typeof window === "undefined") return
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) {
-      setVoiceSupported(false)
-      return
-    }
+    if (!SR) { setVoiceSupported(false); return }
     const recognition = new SR()
     recognition.lang = "pt-BR"
     recognition.continuous = true
     recognition.interimResults = true
-
     recognition.onresult = (event: any) => {
       let transcript = ""
       for (let i = 0; i < event.results.length; i++) {
@@ -77,56 +86,29 @@ export function BriefingComposer({
     }
     recognition.onend = () => setListening(false)
     recognition.onerror = () => setListening(false)
-
     recognitionRef.current = recognition
-    return () => {
-      try {
-        recognition.stop()
-      } catch {
-        /* noop */
-      }
-    }
+    return () => { try { recognition.stop() } catch { } }
   }, [])
 
-  useEffect(() => {
-    return () => meiAbortRef.current?.abort()
-  }, [])
+  useEffect(() => { return () => meiAbortRef.current?.abort() }, [])
 
   const toggleDictation = () => {
     const recognition = recognitionRef.current
     if (!recognition || running) return
-    if (listening) {
-      recognition.stop()
-      setListening(false)
-      return
-    }
+    if (listening) { recognition.stop(); setListening(false); return }
     baseBriefRef.current = brief
-    try {
-      recognition.start()
-      setListening(true)
-    } catch {
-      setListening(false)
-    }
+    try { recognition.start(); setListening(true) } catch { setListening(false) }
   }
 
   const submit = () => {
     const value = brief.trim()
     if (!value || running) return
-    if (listening) {
-      recognitionRef.current?.stop()
-      setListening(false)
-    }
+    if (listening) { recognitionRef.current?.stop(); setListening(false) }
     const fullBrief = `${value}\n\nTom: ${tone}`
     onProduce(fullBrief)
     triggerRealRender(fullBrief)
   }
 
-  /**
-   * Modo rápido MEI: transforma "tipo de negócio" + "oferta" num anúncio
-   * estruturado (hook/body/cta/visual/narração) numa única chamada de IA
-   * (lib/ai/prompt-layer.ts) e usa o resultado pra preencher o brief acima,
-   * pronto pra revisar e produzir com o botão "Produzir peça".
-   */
   const generateMeiBrief = async () => {
     if (!meiBusinessType.trim() || !meiOffer.trim() || meiLoading || running) return
     setMeiError(null)
@@ -140,7 +122,7 @@ export function BriefingComposer({
       setMeiPayload(payload)
       setMeiProvider(provider)
       setBrief(`${payload.hook}\n\n${payload.body}\n\n${payload.cta}`)
-      meiQuota.refresh() // reflete o consumo de cota que acabou de acontecer no servidor
+      meiQuota.refresh()
     } catch (e) {
       if (e instanceof QuotaExceededError) {
         setUpgradeModalOpen(true)
@@ -153,35 +135,42 @@ export function BriefingComposer({
     }
   }
 
-  /**
-   * Envia o payload real (incluindo o aspect ratio do formato escolhido) pro
-   * serviço de renderização assíncrona (AiOrchestratorService — Fal.ai com
-   * fallback automático pro Replicate). Retorna 202 Accepted imediatamente;
-   * o resultado final chega via webhook + video-render.worker.ts no backend.
-   * Best-effort: se a API não estiver configurada, só a simulação local roda.
-   */
   const triggerRealRender = async (prompt: string) => {
     if (!isApiConfigured()) return
 
+    const session = getSession()
+    if (!session) return
+
     const format = FORMATS.find((f) => f.id === formatId)
-    const brand = BRAND_KITS.find((b) => b.id === brandId)
+    // Usa brand kit real se disponível, senão não envia brand_kit
+    const realBrand = realBrands.find((b) => b.id === brandId)
 
     try {
-      const job = await apiFetch<{ id: string; status: string }>("/api/v1/engines/m8/ai-video/generate", {
-        method: "POST",
-        body: JSON.stringify({
-          tenant_id: DEFAULT_TENANT_ID,
-          prompt,
-          aspect_ratio: format?.ratio ?? "9:16",
-          brand_kit: brand ? { palette: brand.palette.map((p) => p.hex) } : undefined,
-        }),
-      })
-      setAsyncRenderNote(`Render assíncrono real disparado (202 Accepted) — job ${job.id.slice(0, 8)}…`)
+      const job = await apiFetch<{ id: string; status: string }>(
+        "/api/v1/engines/m8/ai-video/generate",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            // tenant_id é sobrescrito pelo proxy com o real do JWT
+            tenant_id: session.tenantId,
+            prompt,
+            aspect_ratio: format?.ratio ?? "9:16",
+            ...(realBrand ? {
+              brand_kit: { palette: [realBrand.primary_color ?? "#8052ff"] }
+            } : {}),
+          }),
+        },
+      )
+      setAsyncRenderNote(`Render disparado — job ${job.id.slice(0, 8)}…`)
+      onJobCreated?.(job.id)
     } catch (err) {
-      console.warn("[briefing-composer] Falha ao disparar a geração assíncrona real:", err)
+      console.warn("[briefing-composer] Falha ao disparar render:", err)
       setAsyncRenderNote(null)
     }
   }
+
+  // Brands a exibir: reais do backend, ou vazio se ainda carregando
+  const brandsToShow = realBrands
 
   return (
     <section className="rounded-2xl border border-border bg-card p-4 sm:p-5">
@@ -214,7 +203,6 @@ export function BriefingComposer({
           disabled={!voiceSupported || running}
           aria-label={listening ? "Parar ditado" : "Ditar por voz"}
           aria-pressed={listening}
-          title={voiceSupported ? "Ditar por voz" : "Ditado por voz não suportado neste navegador"}
           className={cn(
             "absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-lg border transition-colors disabled:cursor-not-allowed disabled:opacity-40",
             listening
@@ -226,7 +214,7 @@ export function BriefingComposer({
         </button>
       </div>
 
-      {/* Modo rápido MEI — subcamada de prompt otimizado (prompt-layer.ts) */}
+      {/* Modo rápido MEI */}
       <div className="mt-3 rounded-xl border border-dashed border-border/80 bg-secondary/30 p-3">
         <div className="mb-2 flex items-center gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -255,10 +243,7 @@ export function BriefingComposer({
             type="button"
             onClick={generateMeiBrief}
             disabled={
-              !meiBusinessType.trim() ||
-              !meiOffer.trim() ||
-              meiLoading ||
-              running ||
+              !meiBusinessType.trim() || !meiOffer.trim() || meiLoading || running ||
               (meiQuota.loggedIn && meiQuota.quota !== null && !meiQuota.quota.allowed)
             }
             className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
@@ -287,7 +272,7 @@ export function BriefingComposer({
         )}
       </div>
 
-      {/* sugestões rápidas */}
+      {/* Sugestões rápidas */}
       <div className="mt-3 flex flex-wrap gap-1.5">
         {SAMPLE_BRIEFS.map((s, idx) => (
           <button
@@ -301,38 +286,36 @@ export function BriefingComposer({
         ))}
       </div>
 
-      {/* parâmetros */}
+      {/* Parâmetros */}
       <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Field label="Marca">
           <Select value={brandId} onChange={onBrandChange}>
-            {BRAND_KITS.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
+            {brandsToShow.length > 0 ? (
+              brandsToShow.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))
+            ) : (
+              <option value="" disabled>Carregando marcas...</option>
+            )}
           </Select>
         </Field>
         <Field label="Formato">
           <Select value={formatId} onChange={onFormatChange}>
             {FORMATS.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name} · {f.ratio}
-              </option>
+              <option key={f.id} value={f.id}>{f.name} · {f.ratio}</option>
             ))}
           </Select>
         </Field>
         <Field label="Tom de voz">
           <Select value={tone} onChange={setTone}>
             {TONES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
+              <option key={t} value={t}>{t}</option>
             ))}
           </Select>
         </Field>
       </div>
 
-      {/* ação */}
+      {/* Ação */}
       <div className="mt-4 flex items-center gap-3">
         {running ? (
           <button
@@ -347,7 +330,7 @@ export function BriefingComposer({
           <button
             type="button"
             onClick={submit}
-            disabled={!brief.trim()}
+            disabled={!brief.trim() || brandsToShow.length === 0}
             className={cn(
               "inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all",
               "hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40",
@@ -361,9 +344,11 @@ export function BriefingComposer({
           <CornerDownLeft className="h-3 w-3" aria-hidden /> ⌘ Enter
         </kbd>
       </div>
+
       {asyncRenderNote && (
         <p className="mt-2 text-[10px] text-muted-foreground/80">{asyncRenderNote}</p>
       )}
+
       <UpgradeModal
         open={upgradeModalOpen}
         onClose={() => setUpgradeModalOpen(false)}
@@ -374,19 +359,13 @@ export function BriefingComposer({
   )
 }
 
-/** Rótulo amigável do provedor que gerou o anúncio, pra mostrar no preview do modo MEI. */
 function providerLabel(provider: AdTextProvider | null): string {
   switch (provider) {
-    case "gemini-flash":
-      return "via Gemini Flash"
-    case "deepseek":
-      return "via DeepSeek"
-    case "pollinations-free":
-      return "via IA de texto grátis"
-    case "local":
-      return "via reserva local (IA indisponível no momento)"
-    default:
-      return ""
+    case "gemini-flash": return "via Gemini Flash"
+    case "deepseek": return "via DeepSeek"
+    case "pollinations-free": return "via IA de texto grátis"
+    case "local": return "via reserva local (IA indisponível no momento)"
+    default: return ""
   }
 }
 
@@ -399,14 +378,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-function Select({
-  value,
-  onChange,
-  children,
-}: {
-  value: string
-  onChange: (v: string) => void
-  children: React.ReactNode
+function Select({ value, onChange, children }: {
+  value: string; onChange: (v: string) => void; children: React.ReactNode
 }) {
   return (
     <select
