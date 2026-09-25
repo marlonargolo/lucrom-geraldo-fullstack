@@ -2,7 +2,7 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, Primary
 import { Tenant } from '../../tenants/tenant.entity';
 import { GraphicSlideLayers, GraphicCompositionSnapshot } from './graphic-layer.types';
 
-export type GraphicFormat = '1080x1350' | '1080x1920';
+export type GraphicFormat = '1080x1080' | '1080x1350' | '1080x1920';
 export type GraphicKind = 'carousel' | 'static_art';
 
 /**

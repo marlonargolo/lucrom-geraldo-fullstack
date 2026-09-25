@@ -5,16 +5,31 @@ import { PlanTier, Tenant } from '../tenants/tenant.entity';
 
 /**
  * Limite mensal de gerações de IA por plano — CREATOR é o plano de entrada
- * (auto-cadastro, ver AuthService.register), PRO é o plano pago
- * intermediário (Billing/Mercado Pago), ENTERPRISE é essencialmente
- * ilimitado neste MVP (número alto em vez de lógica de branch "sem limite"
- * separada, menos caminho de código pra validar).
+ * (auto-cadastro, ver AuthService.register), PRO e PLUS são os planos pagos
+ * (Billing/Mercado Pago — preços em billing/plan-products.ts), ENTERPRISE é
+ * essencialmente ilimitado neste MVP (número alto em vez de lógica de branch
+ * "sem limite" separada, menos caminho de código pra validar).
+ *
+ * Manter em sincronia manual com apps/web/app/page.tsx (PLAN_*_LIMIT).
  */
 export const PLAN_QUOTA_LIMITS: Record<PlanTier, number> = {
-  CREATOR: 1,
-  PRO: 100,
+  CREATOR: 3,
+  PRO: 5,
+  PLUS: 15,
   ENTERPRISE: 100_000,
 };
+
+export interface UsageSummary {
+  used: number;
+  limit: number;
+  plan: PlanTier;
+  /** Gerações ainda disponíveis: saldo da cota mensal + créditos avulsos. */
+  remaining: number;
+  extraCreditsRemaining: number;
+  /** Fim do ciclo mensal corrente (início do próximo mês, UTC). */
+  periodEnd: string;
+  accessStatus: 'active' | 'exhausted';
+}
 
 export type QuotaType = 'ai_generation';
 
@@ -59,6 +74,7 @@ export class UsageService {
   async consume(tenantId: string, _quotaType: QuotaType = 'ai_generation'): Promise<QuotaConsumeResult> {
     const creatorLimit = PLAN_QUOTA_LIMITS.CREATOR;
     const proLimit = PLAN_QUOTA_LIMITS.PRO;
+    const plusLimit = PLAN_QUOTA_LIMITS.PLUS;
     const enterpriseLimit = PLAN_QUOTA_LIMITS.ENTERPRISE;
 
     // IMPORTANTE: Repository.query() com UPDATE...RETURNING neste driver
@@ -90,13 +106,14 @@ export class UsageService {
                  CASE plan_tier
                    WHEN 'ENTERPRISE' THEN $4::int
                    WHEN 'PRO' THEN $3::int
+                   WHEN 'PLUS' THEN $5::int
                    ELSE $2::int
                  END
                )
           )
         RETURNING monthly_ai_generations, plan_tier, usage_period_start;
         `,
-        [tenantId, creatorLimit, proLimit, enterpriseLimit],
+        [tenantId, creatorLimit, proLimit, enterpriseLimit, plusLimit],
       );
 
     if (rows.length > 0) {
@@ -174,6 +191,26 @@ export class UsageService {
       plan: tenant.plan_tier,
       periodStart: tenant.usage_period_start,
       extraCreditsRemaining: tenant.extra_video_credits,
+    };
+  }
+
+  /**
+   * Resumo de consumo do ciclo atual para o painel "Consumo e créditos"
+   * (components/studio/account-panel.tsx) — só leitura, nunca consome cota.
+   */
+  async summary(tenantId: string): Promise<UsageSummary> {
+    const quota = await this.peek(tenantId);
+    const extra = quota.extraCreditsRemaining ?? 0;
+    const now = new Date();
+    const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    return {
+      used: quota.used,
+      limit: quota.limit,
+      plan: quota.plan,
+      remaining: Math.max(0, quota.limit - quota.used) + extra,
+      extraCreditsRemaining: extra,
+      periodEnd: periodEnd.toISOString(),
+      accessStatus: quota.allowed ? 'active' : 'exhausted',
     };
   }
 

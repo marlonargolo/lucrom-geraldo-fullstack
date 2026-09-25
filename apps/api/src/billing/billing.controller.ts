@@ -1,23 +1,29 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
-import { IsIn, IsInt, IsPositive, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsPositive, IsString, IsUUID } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ApiTokenGuard } from '../common/guards/api-token.guard';
 import { JwtPayload } from '../auth/auth.service';
 import { BillingService } from './billing.service';
 import type { PaymentMethod, PaymentStatus } from './payment.entity';
 import { ONE_OFF_PRODUCTS, type OneOffProductCode } from './one-off-products';
+import { PLAN_PRODUCTS, type PaidPlanCode } from './plan-products';
 
 class CreateCheckoutIntentDto {
-  @IsIn(['PRO'])
-  plan: 'PRO';
+  @IsIn(['PRO', 'PLUS'])
+  plan: PaidPlanCode;
 
   @IsIn(['pix', 'card'])
   method: PaymentMethod;
 
+  /**
+   * IGNORADO — mantido só por compatibilidade com clientes antigos. O preço
+   * cobrado vem sempre de PLAN_PRODUCTS (billing/plan-products.ts).
+   */
+  @IsOptional()
   @IsInt()
   @IsPositive()
-  amountCents: number;
+  amountCents?: number;
 }
 
 class CreateOneOffCheckoutIntentDto {
@@ -67,14 +73,14 @@ export class BillingController {
     return this.billing.createPendingPayment({
       tenantId: req.user.tenantId,
       plan: dto.plan,
-      amountCents: dto.amountCents,
+      amountCents: PLAN_PRODUCTS[dto.plan].amountCents,
       method: dto.method,
     });
   }
 
   /**
-   * Compra avulsa (AVULSO — 1 vídeo, R$ 39,90) ou pacote fechado (PACOTE5 —
-   * 5 vídeos de 60s, R$ 179,90). Endpoint separado de `checkout-intents`
+   * Compra avulsa (AVULSO — 1 vídeo, R$ 29,90) ou pacote fechado (PACOTE5 —
+   * 5 vídeos de 30s, R$ 134,90). Endpoint separado de `checkout-intents`
    * de propósito: aqui o cliente NUNCA informa preço, só o `productCode` —
    * o valor cobrado vem sempre de ONE_OFF_PRODUCTS (billing/one-off-products.ts),
    * nunca do corpo da requisição.
@@ -95,10 +101,23 @@ export class BillingController {
     return Object.values(ONE_OFF_PRODUCTS);
   }
 
+  /** Preços públicos dos planos de assinatura (PRO/PLUS). */
+  @Get('products/plans')
+  listPlanProducts() {
+    return Object.values(PLAN_PRODUCTS);
+  }
+
+  /** Histórico de pagamentos do PRÓPRIO tenant (tenantId sempre do JWT). */
+  @UseGuards(JwtAuthGuard)
+  @Get('history')
+  history(@Req() req: Request & { user: JwtPayload }) {
+    return this.billing.listPayments(req.user.tenantId);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('checkout-intents/:id')
-  getIntent(@Param('id') id: string) {
-    return this.billing.getPayment(id);
+  getIntent(@Req() req: Request & { user: JwtPayload }, @Param('id') id: string) {
+    return this.billing.getPayment(id, req.user.tenantId);
   }
 
   @UseGuards(ApiTokenGuard)

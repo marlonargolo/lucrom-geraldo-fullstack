@@ -16,6 +16,8 @@ import {
   Volume2,
   Wand2,
   X,
+  Check,
+  SlidersHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ASPECTS, type AspectId, aspectDims, downloadBlob, extForMime } from "@/lib/video/media-engine"
@@ -84,6 +86,8 @@ export function VideoGenerator() {
   const [secondsPerScene, setSecondsPerScene] = useState(4)
   const [music, setMusic] = useState<MusicMode>("corporativo")
   const [narrate, setNarrate] = useState(true)
+  const [automaticMode, setAutomaticMode] = useState(true)
+  const [showAdvancedControls, setShowAdvancedControls] = useState(false)
 
   // ---- Anúncio MEI (prompt-layer.ts): businessType + offer -> hook/body/cta ----
   const [meiBusinessType, setMeiBusinessType] = useState("")
@@ -128,6 +132,7 @@ export function VideoGenerator() {
 
   // Referência (M8/M9): imagem-alvo contra a qual a peça é corrigida e medida.
   const [referenceUrl, setReferenceUrl] = useState<string | null>(null)
+  const [referenceMediaType, setReferenceMediaType] = useState<"image" | "video" | null>(null)
   const referenceImgRef = useRef<HTMLImageElement | null>(null)
   const [measurement, setMeasurement] = useState<FidelityReport | null>(null)
 
@@ -194,9 +199,13 @@ export function VideoGenerator() {
       setScenes(aiScenes)
       setNotice(
         usedAI
-          ? `Roteiro com ${aiScenes.length} cenas gerado por IA. Ajuste os textos se quiser.`
+          ? automaticMode ? "Roteiro aprovado automaticamente. Preparando imagens, voz e legendas..." : `Roteiro com ${aiScenes.length} cenas gerado por IA. Ajuste os textos se quiser.`
           : `A IA de texto estava indisponível, então criei um rascunho base com ${aiScenes.length} cenas. Edite os textos e gere as imagens.`,
       )
+      if (automaticMode) {
+        await generateImages(aiScenes)
+        await render()
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Não foi possível gerar o roteiro por IA.")
     } finally {
@@ -253,8 +262,8 @@ export function VideoGenerator() {
     objectUrlsRef.current = []
   }
 
-  const generateImages = async () => {
-    if (scenes.length === 0 || imagesLoading) return
+  const generateImages = async (sourceScenes = scenes) => {
+    if (sourceScenes.length === 0 || imagesLoading) return
     setError(null)
     setNotice(null)
     setImagesLoading(true)
@@ -266,7 +275,7 @@ export function VideoGenerator() {
     const { w, h } = bgDims(aspect)
     try {
       const map = await generateSceneBackgrounds(
-        scenes.map((s) => ({ id: s.id, imagePrompt: s.imagePrompt, title: s.title })),
+        sourceScenes.map((s) => ({ id: s.id, imagePrompt: s.imagePrompt, title: s.title })),
         w,
         h,
         (done, total) => setImageProgress({ done, total }),
@@ -279,8 +288,8 @@ export function VideoGenerator() {
         setError(
           "O serviço gratuito de imagens recusou as requisições agora (limite de uso). Tente novamente em alguns instantes — o vídeo renderiza normalmente sem imagens.",
         )
-      } else if (ok < scenes.length) {
-        setNotice(`${ok} de ${scenes.length} imagens geradas. As demais usarão o fundo com gradiente.`)
+      } else if (ok < sourceScenes.length) {
+        setNotice(`${ok} de ${sourceScenes.length} imagens geradas. As demais usarão o fundo com gradiente.`)
       } else {
         setNotice("Imagens de IA geradas e aplicadas a todas as cenas.")
       }
@@ -300,19 +309,53 @@ export function VideoGenerator() {
   // ---- Referência de fidelidade (M8/M9) ----
   const onReferenceFile = (file: File | null) => {
     if (!file) return
-    if (!file.type.startsWith("image/")) {
-      setError("A referência precisa ser uma imagem (PNG/JPG).")
+    const isImage = file.type.startsWith("image/")
+    const isVideo = file.type.startsWith("video/")
+    if (!isImage && !isVideo) {
+      setError("A referência precisa ser uma imagem ou vídeo.")
       return
     }
     if (referenceUrl) URL.revokeObjectURL(referenceUrl)
     const url = URL.createObjectURL(file)
-    const img = new Image()
-    img.onload = () => {
-      referenceImgRef.current = img
+    setReferenceMediaType(isVideo ? "video" : "image")
+
+    const setReferenceFrame = (frame: HTMLImageElement) => {
+      referenceImgRef.current = frame
       setReferenceUrl(url)
       setMeasurement(null)
       setError(null)
       setNotice("Referência carregada. Ao renderizar, a peça será corrigida e medida contra ela.")
+    }
+
+    if (isVideo) {
+      const video = document.createElement("video")
+      video.muted = true
+      video.playsInline = true
+      video.onloadeddata = () => {
+        const canvas = document.createElement("canvas")
+        canvas.width = video.videoWidth || 1280
+        canvas.height = video.videoHeight || 720
+        canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const frame = new Image()
+        frame.onload = () => setReferenceFrame(frame)
+        frame.onerror = () => {
+          URL.revokeObjectURL(url)
+          setError("Não foi possível ler o primeiro quadro do vídeo de referência.")
+        }
+        frame.src = canvas.toDataURL("image/jpeg", 0.9)
+      }
+      video.onerror = () => {
+        URL.revokeObjectURL(url)
+        setError("Não foi possível carregar o vídeo de referência.")
+      }
+      video.src = url
+      video.load()
+      return
+    }
+
+    const img = new Image()
+    img.onload = () => {
+      setReferenceFrame(img)
     }
     img.onerror = () => {
       URL.revokeObjectURL(url)
@@ -325,6 +368,7 @@ export function VideoGenerator() {
     if (referenceUrl) URL.revokeObjectURL(referenceUrl)
     referenceImgRef.current = null
     setReferenceUrl(null)
+    setReferenceMediaType(null)
     setMeasurement(null)
   }
 
@@ -459,7 +503,7 @@ export function VideoGenerator() {
     if (!resultUrl) return
     fetch(resultUrl)
       .then((r) => r.blob())
-      .then((blob) => downloadBlob(blob, `lucrom-video.${extForMime(resultMime)}`))
+      .then((blob) => downloadBlob(blob, `criatai-video.${extForMime(resultMime)}`))
   }
 
   const publishToInstagram = async () => {
@@ -525,7 +569,7 @@ export function VideoGenerator() {
               ) : (
                 <Sparkles className="h-4 w-4" aria-hidden />
               )}
-              {aiLoading ? "Gerando..." : "Gerar roteiro"}
+              {aiLoading ? "Preparando seu vídeo..." : automaticMode ? "Criar vídeo automaticamente" : "Gerar roteiro"}
             </button>
           </div>
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
@@ -602,9 +646,30 @@ export function VideoGenerator() {
             )}
             {meiLoading ? "Gerando..." : "Gerar anúncio (MEI)"}
           </button>
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+            <div className="flex items-start gap-2.5">
+              <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                {automaticMode ? <Check className="h-3.5 w-3.5" aria-hidden /> : <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-foreground">Criação automática</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                  A IA melhora sua ideia e prepara roteiro, cenas, imagens, voz e legendas sem exigir conhecimento técnico.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={automaticMode}
+              onClick={() => setAutomaticMode((value) => !value)}
+              className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", automaticMode ? "bg-primary" : "bg-muted")}
+            >
+              <span className={cn("absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform", automaticMode ? "translate-x-6" : "translate-x-1")} />
+            </button>
+          </div>
           <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            Uma única chamada de IA em JSON estruturado (gancho, oferta e chamada), otimizada pra economizar
-            tokens. Preenche as 3 cenas abaixo — edite os textos e gere as imagens normalmente.
+            Depois de pronto, você pode revisar cada cena, ajustar estilo e exportar. A publicação nunca acontece sem sua confirmação.
           </p>
         </section>
 
@@ -660,7 +725,7 @@ export function VideoGenerator() {
                 )}
                 <button
                   type="button"
-                  onClick={generateImages}
+                  onClick={() => generateImages()}
                   disabled={imagesLoading}
                   className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
                 >
@@ -850,14 +915,27 @@ export function VideoGenerator() {
 
           {referenceUrl ? (
             <div className="flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={referenceUrl || "/placeholder.svg"}
-                alt="Imagem de referência de cor e luz"
-                className="h-16 w-16 rounded-lg border border-border object-cover"
-              />
+              {referenceMediaType === "video" ? (
+                <video
+                  src={referenceUrl}
+                  muted
+                  autoPlay
+                  loop
+                  playsInline
+                  aria-label="Vídeo de referência de cor e luz"
+                  className="h-16 w-16 rounded-lg border border-border object-cover"
+                />
+              ) : (
+                <img
+                  src={referenceUrl || "/placeholder.svg"}
+                  alt="Imagem de referência de cor e luz"
+                  className="h-16 w-16 rounded-lg border border-border object-cover"
+                />
+              )}
               <div className="min-w-0 flex-1">
-                <p className="text-[12px] font-medium text-foreground">Referência carregada</p>
+                <p className="text-[12px] font-medium text-foreground">
+                  {referenceMediaType === "video" ? "Vídeo de referência carregado" : "Imagem de referência carregada"}
+                </p>
                 <p className="text-[11px] leading-snug text-muted-foreground">
                   A peça será corrigida (color grade) e medida contra ela ao renderizar.
                 </p>
@@ -873,13 +951,13 @@ export function VideoGenerator() {
           ) : (
             <label className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-secondary/40 px-4 py-6 text-center transition-colors hover:border-primary/40">
               <Upload className="h-5 w-5 text-muted-foreground" aria-hidden />
-              <span className="text-[12px] font-medium text-foreground">Enviar imagem de referência</span>
+              <span className="text-[12px] font-medium text-foreground">Enviar imagem ou vídeo de referência</span>
               <span className="text-[11px] text-muted-foreground">
                 Cor, brilho, contraste e ruído são lidos dos pixels — sem simulação
               </span>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 className="sr-only"
                 onChange={(e) => onReferenceFile(e.target.files?.[0] ?? null)}
               />

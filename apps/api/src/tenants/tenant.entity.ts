@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
-export type PlanTier = 'CREATOR' | 'PRO' | 'ENTERPRISE';
+export type PlanTier = 'CREATOR' | 'PRO' | 'PLUS' | 'ENTERPRISE';
 
 /**
  * Tabela `tenants` — schema idêntico ao especificado em:

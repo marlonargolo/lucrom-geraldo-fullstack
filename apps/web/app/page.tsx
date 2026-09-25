@@ -7,6 +7,7 @@ import { ArrowRight, Check, Mail } from "lucide-react"
 import { motion, useScroll, useTransform } from "framer-motion"
 import { Constellation3D } from "@/components/marketing/constellation-3d"
 import { FaqAccordion, type FaqItem } from "@/components/marketing/faq-accordion"
+import { LegalLinks } from "@/components/legal/legal-links"
 
 // ─── Design System Override — Dala / Void ─────────────────────────────────
 //
@@ -18,67 +19,70 @@ import { FaqAccordion, type FaqItem } from "@/components/marketing/faq-accordion
 //
 // Números de plano — manter em sincronia manual com:
 //   apps/api/src/usage/usage.service.ts (PLAN_QUOTA_LIMITS)
-//   apps/web/app/api/billing/checkout/route.ts (BILLING_PRO_PLAN_PRICE_CENTS)
+//   apps/api/src/billing/plan-products.ts (PLAN_PRODUCTS — preço PRO/PLUS)
+//   apps/api/src/billing/one-off-products.ts (ONE_OFF_PRODUCTS — avulso/pacote)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PLAN_CREATOR_LIMIT = 1
-const PLAN_PRO_LIMIT = 100
-const PLAN_PRO_PRICE = "R$ 49,90"
-const PLAN_AVULSO_PRICE = "R$ 39,90"
-const PLAN_PACOTE5_PRICE = "R$ 179,90"
+const PLAN_CREATOR_LIMIT = 3
+const PLAN_PRO_LIMIT = 5
+const PLAN_PLUS_LIMIT = 15
+const PLAN_PRO_PRICE = "R$ 119"
+const PLAN_PLUS_PRICE = "R$ 329"
+const PLAN_AVULSO_PRICE = "R$ 29,90"
+const PLAN_PACOTE5_PRICE = "R$ 134,90"
 const SALES_EMAIL =
-  "mailto:vendas@lucrom.studio?subject=Plano%20Ag%C3%AAncia%2FEmpresa%20-%20Lucrom%20Studio"
+  "mailto:vendas@criatai.studio?subject=Plano%20Ag%C3%AAncia%2FEmpresa%20-%20Criatai"
 
 const NAV_LINKS = [
-  { href: "#pipeline", label: "Pipeline" },
+  { href: "#pipeline", label: "Como funciona" },
   { href: "#precos", label: "Preços" },
-  { href: "#faq", label: "FAQ" },
+  { href: "#faq", label: "Perguntas frequentes" },
 ] as const
 
 const PIPELINE_STEPS = [
   {
     number: "01",
-    label: "BRIEFING",
-    headline: "Duas frases.",
-    body: "Tipo de negócio e oferta. Nada mais. O sistema lê, interpreta contexto e seleciona o modelo generativo certo.",
+    label: "INFORMAÇÕES DO SEU NEGÓCIO",
+    headline: "Escreva só duas frases.",
+    body: "Diga qual é o seu tipo de negócio e a sua promoção. É só isso. Nosso sistema entende o seu produto e escolhe o melhor estilo de vídeo para você.",
     accent: "#8052ff",
   },
   {
     number: "02",
-    label: "IA GERA",
-    headline: "Gancho, roteiro, vídeo.",
-    body: "Pipeline M8 em quatro etapas: transcrição word-level, isolamento vocal, matting de fundo e geração de imagem por nicho. Tudo assíncrono.",
+    label: "A CRIATAI FAZ O VÍDEO",
+    headline: "Texto, voz e visual prontos.",
+    body: "Nossa tecnologia cria a frase de impacto, o roteiro, legenda palavra por palavra, retira ruídos e gera imagens sob medida para o seu segmento. Tudo de forma automática.",
     accent: "#ffb829",
   },
   {
     number: "03",
-    label: "PUBLICAÇÃO",
-    headline: "Direto no Instagram.",
-    body: "Graph API oficial da Meta. Você revisa a legenda, aprova — o sistema publica. Sem exportar, sem abrir o app.",
+    label: "PUBLICAÇÃO DIRETA",
+    headline: "Direto no seu Instagram.",
+    body: "Você lê a legenda, clica em aprovar e o vídeo vai para o ar no seu perfil. Não precisa baixar para o celular, nem abrir outro aplicativo.",
     accent: "#15846e",
   },
 ] as const
 
 const FEATURES = [
   {
-    tag: "RESILIÊNCIA",
-    headline: "Circuit breaker automático.",
-    body: "Kling AI primário, MiniMax como fallback. Se um cai, o outro assume sem latência visível.",
+    tag: "SISTEMA SEMPRE NO AR",
+    headline: "Nunca fica na mão.",
+    body: "Usamos mais de uma tecnologia de geração de vídeo. Se um sistema instabilizar, outro assume na hora sem você nem perceber.",
   },
   {
-    tag: "TRANSPARÊNCIA",
-    headline: "Contador em tempo real.",
-    body: "Você vê exatamente quantas gerações usou no mês. Sem surpresa de limite estourado.",
+    tag: "CONTADOR TRANSPARENTE",
+    headline: "Você no controle.",
+    body: "Acompanhe em tempo real quantos vídeos já criou no mês. Sem surpresas ou cobranças indevidas no final.",
   },
   {
-    tag: "PUBLICAÇÃO",
-    headline: "API oficial, não scraping.",
-    body: "Integração direta com Meta Graph API — aprovada, estável e sem risco de ban de conta.",
+    tag: "CONEXÃO SEGURA E OFICIAL",
+    headline: "100% aprovado pela Meta.",
+    body: "Conexão oficial com o Instagram. Sua conta fica totalmente segura, sem risco de bloqueio ou banimento.",
   },
   {
-    tag: "PAGAMENTO",
-    headline: "PIX ou cartão.",
-    body: "QR Code gerado na hora via Mercado Pago. Upgrade em menos de 60 segundos.",
+    tag: "PAGAMENTO FACILITADO",
+    headline: "PIX ou Cartão de Crédito.",
+    body: "Gere o QR Code e pague pelo celular. Seu plano ou vídeo extra é liberado em menos de 1 minuto.",
   },
 ] as const
 
@@ -86,26 +90,26 @@ const FAQ: FaqItem[] = [
   {
     question: "Preciso saber editar vídeo?",
     answer:
-      "Não. Você escreve o que vende e o pipeline cuida de roteiro, imagens e montagem. O resultado chega pronto para publicar.",
+      "Não! Você só digita o que vende e a Criatai faz o roteiro, escolhe as imagens e monta a edição. O vídeo chega pronto.",
   },
   {
     question: "E se eu não gostar do texto gerado?",
     answer:
-      "Edite antes de confirmar. A IA dá o ponto de partida — gancho, oferta e chamada — mas a palavra final é sempre sua.",
+      "Você pode pedir para a inteligência reescrever ou você mesmo pode fazer ajustes rápidos no texto antes de gerar o vídeo.",
   },
   {
-    question: "Preciso configurar chave de API?",
+    question: "Preciso configurar alguma coisa complicada?",
     answer:
-      "Não. O plano gratuito funciona sem nenhuma configuração. O sistema usa nossos provedores de IA diretamente.",
+      "Não. Basta conectar a sua conta do Instagram em alguns cliques e pronto.",
   },
   {
     question: "Como funciona o pagamento?",
-    answer: `Via Mercado Pago — PIX com QR Code ou cartão de crédito. Plano PRO custa ${PLAN_PRO_PRICE}/mês por ${PLAN_PRO_LIMIT} gerações.`,
+    answer: "Você pode pagar via PIX (com liberação imediata) ou Cartão de Crédito.",
   },
   {
-    question: "Funciona para qualquer tipo de negócio?",
+    question: "Funciona para o meu tipo de negócio?",
     answer:
-      "Sim. Qualquer MEI com oferta específica: hamburguerias, salões, eletricistas, lojas, profissionais liberais.",
+      "Sim! Serve para lojas físicas, e-commerce, prestadores de serviço, profissionais liberais, restaurantes e qualquer negócio que venda no Instagram.",
   },
 ]
 
@@ -177,7 +181,7 @@ function HeroContent() {
             marginBottom: 24,
           }}
         >
-          Studio AI · Pipeline M8
+          Criatai AI · Criação Rápida
         </motion.p>
       </motion.div>
 
@@ -195,7 +199,7 @@ function HeroContent() {
             delay: 0.1,
           }}
         >
-          Seu anúncio gerado,
+          Seu anúncio pronto e
           <span style={{ color: "var(--iris)" }}> publicado </span>
           em minutos.
         </motion.h1>
@@ -216,9 +220,9 @@ function HeroContent() {
             delay: 0.3,
           }}
         >
-          Você diz o que vende. O pipeline de IA escreve o roteiro,
-          gera o vídeo e publica direto no Instagram — sem agência,
-          sem editor, sem esperar.
+          Você só diz o que vende. A inteligência da Criatai escreve a fala,
+          monta o vídeo e posta direto no seu Instagram — sem precisar de agência,
+          sem editar nada e sem perder tempo.
         </motion.p>
       </motion.div>
 
@@ -250,7 +254,7 @@ function HeroContent() {
               textDecoration: "none",
             }}
           >
-            Ver pipeline →
+            Ver como funciona ↓
           </a>
         </motion.div>
       </motion.div>
@@ -265,7 +269,7 @@ function HeroContent() {
           marginTop: 28,
         }}
       >
-        {PLAN_CREATOR_LIMIT} vídeo grátis/mês · sem cartão de crédito
+          {PLAN_CREATOR_LIMIT} vídeos grátis por mês · Sem pedir cartão de crédito
       </motion.p>
     </div>
   )
@@ -469,7 +473,7 @@ export default function LandingPage() {
 
           <div style={{ marginLeft: "auto" }}>
             <Link href="/studio" className="btn-iris nav-cta">
-              Entrar no Studio
+              Entrar na Criatai
             </Link>
           </div>
         </nav>
@@ -531,8 +535,8 @@ export default function LandingPage() {
               Como funciona
             </p>
             <h2 className="t-heading-lg" style={{ maxWidth: 620, marginBottom: 80 }}>
-              Três etapas.<br />
-              <span style={{ color: "var(--ash)" }}>Do briefing ao Instagram.</span>
+              Três passos simples.<br />
+              <span style={{ color: "var(--ash)" }}>Da sua ideia direto pro Instagram.</span>
             </h2>
           </Reveal>
 
@@ -578,8 +582,8 @@ export default function LandingPage() {
         >
           <Reveal>
             <h2 className="t-heading" style={{ marginBottom: 80, maxWidth: 500 }}>
-              Feito pra rodar todo mês,{" "}
-              <span style={{ color: "var(--ash)" }}>sem drama.</span>
+              Feito para rodar todo dia,{" "}
+              <span style={{ color: "var(--ash)" }}>sem complicação.</span>
             </h2>
           </Reveal>
 
@@ -625,13 +629,13 @@ export default function LandingPage() {
         >
           <Reveal>
             <p className="t-label" style={{ color: "var(--amber)", marginBottom: 20 }}>
-              Preço
+              Preços
             </p>
             <h2 className="t-heading-lg" style={{ marginBottom: 16 }}>
-              Simples.
+              Simples e sem letras miúdas.
             </h2>
             <p className="t-body" style={{ color: "var(--ash)", marginBottom: 80 }}>
-              Um número de gerações por mês. Sem crédito misterioso.
+              Escolha o plano ideal para a quantidade de vídeos que você quer postar por mês.
             </p>
           </Reveal>
 
@@ -650,9 +654,10 @@ export default function LandingPage() {
                 price="R$ 0"
                 highlight={false}
                 items={[
-                  `${PLAN_CREATOR_LIMIT} vídeo de IA por mês`,
+                  `${PLAN_CREATOR_LIMIT} vídeos com IA por mês`,
+                  "Com marca d'água",
                   "Publicação direta no Instagram",
-                  "Sem cartão de crédito",
+                  "Sem pedir cartão de crédito",
                 ]}
                 cta={{ label: "Começar grátis", href: "/studio" }}
               />
@@ -661,14 +666,14 @@ export default function LandingPage() {
             {/* Avulso */}
             <Reveal delay={0.08} y={24} style={{ height: "100%" }}>
               <PricingCard
-                tier="AVULSO"
+                tier="VÍDEO AVULSO"
                 price={PLAN_AVULSO_PRICE}
-                priceSuffix="/vídeo"
+                priceSuffix=" / vídeo"
                 highlight={false}
                 items={[
-                  "1 vídeo extra, sem assinatura",
-                  "Usa quando o grátis acabar",
-                  "PIX ou cartão",
+                  "1 vídeo extra, sem marca d'água",
+                  "Ideal para usar quando o plano grátis acabar",
+                  "Pagamento via PIX ou Cartão",
                 ]}
                 cta={{ label: "Comprar 1 vídeo", href: "/studio?buy=avulso" }}
               />
@@ -677,33 +682,52 @@ export default function LandingPage() {
             {/* Pacote 5 */}
             <Reveal delay={0.16} y={24} style={{ height: "100%" }}>
               <PricingCard
-                tier="PACOTE 5"
+                tier="PACOTE 5 VÍDEOS"
                 price={PLAN_PACOTE5_PRICE}
-                priceSuffix="/pacote"
+                priceSuffix=" / pacote"
                 highlight={false}
                 items={[
                   "5 vídeos de até 60 segundos",
-                  "Créditos não expiram no mês",
-                  "Compra única, sem assinatura",
+                  "Sem marca d'água",
+                  "Os vídeos não expiram no fim do mês",
+                  "Compra única, sem mensalidade",
                 ]}
                 cta={{ label: "Comprar pacote", href: "/studio?buy=pacote5" }}
               />
             </Reveal>
 
-            {/* PRO — destaque */}
+            {/* PRO */}
             <Reveal delay={0.24} y={24} style={{ height: "100%" }}>
               <PricingCard
-                tier="PRO"
+                tier="PLANO PRO"
                 price={PLAN_PRO_PRICE}
-                priceSuffix="/mês"
-                highlight={true}
-                badge="Mais escolhido"
+                priceSuffix=" / mês"
+                highlight={false}
                 items={[
-                  `${PLAN_PRO_LIMIT} gerações de IA por mês`,
+                  `${PLAN_PRO_LIMIT} vídeos com IA por mês`,
+                  "Sem marca d'água",
                   "Publicação direta no Instagram",
                   "Cancele quando quiser",
                 ]}
+                badge="Mais escolhido"
                 cta={{ label: "Assinar Pro", href: "/studio" }}
+              />
+            </Reveal>
+
+            {/* PLUS — destaque */}
+            <Reveal delay={0.28} y={24} style={{ height: "100%" }}>
+              <PricingCard
+                tier="PLANO PLUS"
+                price={PLAN_PLUS_PRICE}
+                priceSuffix=" / mês"
+                highlight={true}
+                items={[
+                  `${PLAN_PLUS_LIMIT} vídeos com IA por mês`,
+                  "Sem marca d'água",
+                  "Publicação direta no Instagram",
+                  "Cancele quando quiser",
+                ]}
+                cta={{ label: "Assinar Plus", href: "/studio" }}
               />
             </Reveal>
 
@@ -711,7 +735,7 @@ export default function LandingPage() {
             <Reveal delay={0.32} y={24} style={{ height: "100%" }}>
               <div style={{ background: "var(--void)", padding: "40px 36px", height: "100%" }}>
                 <p className="t-label" style={{ color: "var(--verdant)", marginBottom: 20 }}>
-                  AGÊNCIA / EMPRESA
+                  PARA AGÊNCIAS E EMPRESAS
                 </p>
                 <p
                   style={{
@@ -725,7 +749,7 @@ export default function LandingPage() {
                   Sob consulta
                 </p>
                 <ul style={{ listStyle: "none", padding: 0, margin: "0 0 32px", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {["Volume alto de gerações", "Múltiplas marcas/contas", "Suporte dedicado"].map((item) => (
+                  {["Grande volume de vídeos por mês", "Gerenciamento de múltiplas marcas ou perfis", "Atendimento e suporte dedicado"].map((item) => (
                     <li key={item} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <Check size={14} color="var(--verdant)" />
                       <span style={{ color: "var(--ash)", fontSize: 15 }}>{item}</span>
@@ -734,7 +758,7 @@ export default function LandingPage() {
                 </ul>
                 <a href={SALES_EMAIL} className="t-nav" style={{ color: "var(--verdant)", textDecoration: "none", display: "flex", alignItems: "center", gap: 8 }}>
                   <Mail size={14} />
-                  Falar com o time
+                  Falar com a equipe
                 </a>
               </div>
             </Reveal>
@@ -795,7 +819,7 @@ export default function LandingPage() {
               Comece agora
             </p>
             <h2 className="t-heading-lg" style={{ maxWidth: 640, marginBottom: 48 }}>
-              Seu próximo anúncio pode estar pronto em{" "}
+              Seu próximo anúncio pode estar no ar em{" "}
               <span style={{ color: "var(--iris)" }}>3 minutos.</span>
             </h2>
             <Link href="/studio" className="btn-iris" style={{ fontSize: 15, padding: "16px 32px" }}>
@@ -822,10 +846,10 @@ export default function LandingPage() {
               <Reveal delay={0}>
                 <div>
                   <p className="t-nav" style={{ color: "var(--bone)", marginBottom: 12 }}>
-                    LUCROM<span style={{ color: "var(--iris)" }}>.</span>
+                    CRIATAI<span style={{ color: "var(--iris)" }}>.</span>
                   </p>
                   <p style={{ color: "var(--ash)", fontSize: 13, lineHeight: 1.6 }}>
-                    Marketing inteligente para o MEI brasileiro.
+                    Divulgação inteligente para o micro e pequeno empreendedor brasileiro.
                   </p>
                 </div>
               </Reveal>
@@ -839,7 +863,7 @@ export default function LandingPage() {
                     {[
                       { href: "#pipeline", label: "Como funciona" },
                       { href: "#precos", label: "Preços" },
-                      { href: "/studio", label: "Entrar" },
+                      { href: "/studio", label: "Entrar na conta" },
                     ].map((l) => (
                       <a
                         key={l.href}
@@ -876,6 +900,8 @@ export default function LandingPage() {
               </Reveal>
             </div>
 
+            <LegalLinks variant="marketing" className="mb-6" />
+
             <Reveal delay={0.05} y={16}>
             <div
               style={{
@@ -888,10 +914,10 @@ export default function LandingPage() {
               }}
             >
               <p className="t-label" style={{ color: "rgba(255,255,255,0.2)" }}>
-                © {new Date().getFullYear()} Lucrom Studio
+                © {new Date().getFullYear()} Criatai
               </p>
               <p className="t-label" style={{ color: "rgba(255,255,255,0.2)" }}>
-                Feito para o MEI brasileiro
+                Feito para o empreendedor brasileiro.
               </p>
             </div>
             </Reveal>

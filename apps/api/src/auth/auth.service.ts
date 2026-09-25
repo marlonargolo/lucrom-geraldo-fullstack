@@ -1,5 +1,7 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { createHash, randomBytes } from 'crypto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { DataSource, Repository } from 'typeorm';
@@ -12,6 +14,9 @@ import { User } from './user.entity';
 const BCRYPT_ROUNDS = 12;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutos
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
+const MAX_RESET_REQUESTS = 3; // por e-mail, por janela de 1 hora
+const FORGOT_PASSWORD_MESSAGE = 'Se o e-mail estiver cadastrado, enviaremos as instruções de recuperação.';
 
 export interface JwtPayload {
   sub: string; // user.id
@@ -33,12 +38,15 @@ export interface JwtPayload {
  */
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Tenant) private readonly tenants: Repository<Tenant>,
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly jwt: JwtService,
     private readonly redis: RedisService,
+    private readonly config: ConfigService,
   ) {}
 
   async register(dto: RegisterDto): Promise<{ id: string; email: string; tenantId: string; accessToken: string }> {
@@ -71,6 +79,10 @@ export class AuthService {
           password_hash,
           role: 'ADMIN',
           last_login_at: null,
+          terms_version: dto.termsVersion.trim(),
+          privacy_version: dto.privacyVersion.trim(),
+          legal_accepted_at: new Date(),
+          is_platform_admin: false,
         }),
       );
       return { tenant, user };
@@ -80,7 +92,10 @@ export class AuthService {
     return { id: user.id, email: user.email, tenantId: tenant.id, accessToken };
   }
 
-  async login(dto: LoginDto, clientIp: string): Promise<{ accessToken: string; user: { id: string; email: string; tenantId: string; role: string } }> {
+  async login(
+    dto: LoginDto,
+    clientIp: string,
+  ): Promise<{ accessToken: string; user: { id: string; email: string; tenantId: string; role: string; isPlatformAdmin: boolean } }> {
     const email = dto.email.toLowerCase();
     const rateLimitKey = `auth:login-attempts:${clientIp}:${email}`;
     await this.assertNotRateLimited(rateLimitKey);
@@ -99,7 +114,72 @@ export class AuthService {
     await this.users.save(user);
 
     const accessToken = this.signToken({ sub: user.id, tenantId: user.tenant_id, email: user.email, role: user.role });
-    return { accessToken, user: { id: user.id, email: user.email, tenantId: user.tenant_id, role: user.role } };
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        tenantId: user.tenant_id,
+        role: user.role,
+        isPlatformAdmin: user.is_platform_admin === true,
+      },
+    };
+  }
+
+  /**
+   * Recuperação de senha — passo 1. SEMPRE responde a mesma mensagem, exista
+   * o e-mail ou não (evita enumeração de contas). Quando existe, gera um
+   * token aleatório de uso único (só o hash SHA-256 fica no Redis, TTL 1h).
+   *
+   * Entrega: não há provedor de e-mail configurado neste backend ainda. Fora
+   * de produção o link é escrito no log para teste; em produção só um aviso é
+   * registrado (o link NUNCA é logado em produção). Plugar o envio de e-mail
+   * em `deliverResetLink`.
+   */
+  async forgotPassword(emailRaw: string): Promise<{ message: string }> {
+    const email = emailRaw.toLowerCase().trim();
+    const throttleKey = `auth:reset-requests:${email}`;
+    const requests = await this.redis.incrWithWindowMs(throttleKey, RESET_TOKEN_TTL_MS);
+    if (requests > MAX_RESET_REQUESTS) return { message: FORGOT_PASSWORD_MESSAGE };
+
+    const user = await this.users.findOne({ where: { email } });
+    if (!user) return { message: FORGOT_PASSWORD_MESSAGE };
+
+    const token = randomBytes(32).toString('base64url');
+    await this.redis.setWithTtlMs(`auth:reset-token:${this.hashToken(token)}`, user.id, RESET_TOKEN_TTL_MS);
+    this.deliverResetLink(user.email, token);
+    return { message: FORGOT_PASSWORD_MESSAGE };
+  }
+
+  /** Recuperação de senha — passo 2: troca a senha usando o token (uso único). */
+  async resetPassword(token: string, password: string): Promise<{ message: string }> {
+    const key = `auth:reset-token:${this.hashToken(token)}`;
+    const userId = await this.redis.get(key);
+    if (!userId) throw new BadRequestException('Link de recuperação inválido ou expirado. Solicite um novo.');
+    await this.redis.del(key);
+
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user) throw new BadRequestException('Link de recuperação inválido ou expirado. Solicite um novo.');
+
+    user.password_hash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    await this.users.save(user);
+    return { message: 'Senha alterada. Entre com a nova senha.' };
+  }
+
+  private hashToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private deliverResetLink(email: string, token: string): void {
+    const siteUrl = (process.env.PUBLIC_SITE_URL ?? '').replace(/\/$/, '');
+    const link = `${siteUrl}/studio/login?reset=${encodeURIComponent(token)}`;
+    if (this.config.get<string>('nodeEnv') !== 'production') {
+      this.logger.log(`[dev] Link de recuperação de senha para ${email}: ${link}`);
+      return;
+    }
+    this.logger.warn(
+      `Pedido de recuperação de senha para ${email}, mas nenhum provedor de e-mail está configurado — link não enviado.`,
+    );
   }
 
   private signToken(payload: JwtPayload): string {

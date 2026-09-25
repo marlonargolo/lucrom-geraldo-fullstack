@@ -44,6 +44,11 @@ import { AddAvatarEngine1754000000000 } from './migrations/1754000000000-AddAvat
 import { AddAiGenerationJobToProductionContract1754100000000 } from './migrations/1754100000000-AddAiGenerationJobToProductionContract';
 // Módulo Ajuste Rápido Humano: camadas editáveis + versionamento no GraphicComposer, sem custo de IA.
 import { AddQuickAdjustLayers1754200000000 } from './migrations/1754200000000-AddQuickAdjustLayers';
+// Compra avulsa (AVULSO/PACOTE5) e rastreio de cota cobrada por job — já existiam mas não estavam registradas aqui.
+import { AddOneOffVideoCredits1754300000000 } from './migrations/1754300000000-AddOneOffVideoCredits';
+import { AddQuotaChargeTrackingToAiGenerationJobs1754400000000 } from './migrations/1754400000000-AddQuotaChargeTrackingToAiGenerationJobs';
+// Aceite legal no cadastro + administrador de plataforma (/studio/admin).
+import { AddLegalAcceptanceAndPlatformAdmin1754500000000 } from './migrations/1754500000000-AddLegalAcceptanceAndPlatformAdmin';
 
 const ENTITIES = [
   Tenant,
@@ -86,6 +91,9 @@ const MIGRATIONS = [
   AddAvatarEngine1754000000000,
   AddAiGenerationJobToProductionContract1754100000000,
   AddQuickAdjustLayers1754200000000,
+  AddOneOffVideoCredits1754300000000,
+  AddQuotaChargeTrackingToAiGenerationJobs1754400000000,
+  AddLegalAcceptanceAndPlatformAdmin1754500000000,
 ];
 
 @Module({

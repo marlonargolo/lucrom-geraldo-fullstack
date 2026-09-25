@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Sparkles, LogIn, UserPlus, Eye, EyeOff, TriangleAlert } from "lucide-react"
+import Link from "next/link"
+import { Sparkles, LogIn, UserPlus, Eye, EyeOff, TriangleAlert, ArrowLeft, MailCheck } from "lucide-react"
 import { BrandMark } from "@/components/studio/brand-mark"
 import { useAuth } from "@/lib/auth/auth-context"
 import { friendlyApiError } from "@/lib/auth/auth-context"
-import { isApiConfigured } from "@/lib/api/client"
+import { apiFetch, isApiAvailable } from "@/lib/api/client"
 import { cn } from "@/lib/utils"
+import { LEGAL_POLICY_VERSIONS } from "@/lib/legal/policies"
 
-type Mode = "login" | "register"
+type Mode = "login" | "register" | "forgot" | "reset"
 
 export default function LoginPage() {
   const { session, login, register, validatePassword } = useAuth()
@@ -24,6 +26,19 @@ export default function LoginPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [acceptedPolicies, setAcceptedPolicies] = useState(false)
+  const [recoverySent, setRecoverySent] = useState(false)
+  const [resetToken, setResetToken] = useState<string | null>(null)
+  const [resetDone, setResetDone] = useState(false)
+
+  // Link de recuperação de senha: /studio/login?reset=<token>
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("reset")
+    if (token) {
+      setResetToken(token)
+      setMode("reset")
+    }
+  }, [])
 
   // Redireciona se já logado
   useEffect(() => {
@@ -31,21 +46,67 @@ export default function LoginPage() {
   }, [session, router])
 
   // Sem API configurada no servidor, mostra aviso em vez de formulário
-  const apiUnavailable = !process.env.NEXT_PUBLIC_API_BASE_URL
+  const apiUnavailable = !isApiAvailable()
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
+    if (mode === "forgot") {
+      setLoading(true)
+      try {
+        await apiFetch<{ message: string }>("/api/v1/auth/forgot-password", {
+          method: "POST",
+          body: JSON.stringify({ email }),
+        })
+        setRecoverySent(true)
+      } catch (err) {
+        setError(friendlyApiError(err))
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
+    if (mode === "reset") {
+      const err = validatePassword(password, confirmPassword)
+      if (err) { setError(err); return }
+      setLoading(true)
+      try {
+        await apiFetch<{ message: string }>("/api/v1/auth/reset-password", {
+          method: "POST",
+          body: JSON.stringify({ token: resetToken, password }),
+        })
+        setResetDone(true)
+        setResetToken(null)
+        setPassword("")
+        setConfirmPassword("")
+        setMode("login")
+        window.history.replaceState(null, "", "/studio/login")
+      } catch (err) {
+        setError(friendlyApiError(err))
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
     if (mode === "register") {
       const err = validatePassword(password, confirmPassword)
       if (err) { setError(err); return }
+      if (!acceptedPolicies) {
+        setError("Aceite os Termos de Uso e confirme que leu a Política de Privacidade para criar sua conta.")
+        return
+      }
     }
 
     setLoading(true)
     try {
       if (mode === "register") {
-        await register(email, password, businessName)
+        await register(email, password, businessName, {
+          termsVersion: LEGAL_POLICY_VERSIONS.terms,
+          privacyVersion: LEGAL_POLICY_VERSIONS.privacy,
+        })
       } else {
         await login(email, password)
       }
@@ -76,21 +137,56 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-border bg-card p-6 shadow-xl shadow-black/5">
-          {/* Tabs */}
-          <div className="mb-6 flex items-center gap-1 rounded-xl border border-border bg-background/60 p-1">
-            <TabBtn
-              active={mode === "login"}
-              onClick={() => { setMode("login"); setError(null) }}
-              icon={LogIn}
-              label="Entrar"
-            />
-            <TabBtn
-              active={mode === "register"}
-              onClick={() => { setMode("register"); setError(null) }}
-              icon={UserPlus}
-              label="Criar conta"
-            />
-          </div>
+          {mode === "reset" ? (
+            <div className="mb-6 flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <MailCheck className="h-4 w-4" aria-hidden />
+              </div>
+              <div>
+                <h1 className="font-display text-xl font-semibold tracking-tight">Defina uma nova senha</h1>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  Escolha uma senha com 8+ caracteres, letras e números.
+                </p>
+              </div>
+            </div>
+          ) : mode === "forgot" ? (
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => { setMode("login"); setError(null); setRecoverySent(false) }}
+                className="mb-5 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+                Voltar para entrar
+              </button>
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <MailCheck className="h-4 w-4" aria-hidden />
+                </div>
+                <div>
+                  <h1 className="font-display text-xl font-semibold tracking-tight">Esqueceu sua senha?</h1>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Informe seu e-mail para receber as instruções de recuperação.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-6 flex items-center gap-1 rounded-xl border border-border bg-background/60 p-1">
+              <TabBtn
+                active={mode === "login"}
+                onClick={() => { setMode("login"); setError(null); setRecoverySent(false) }}
+                icon={LogIn}
+                label="Entrar"
+              />
+              <TabBtn
+                active={mode === "register"}
+                onClick={() => { setMode("register"); setError(null); setRecoverySent(false) }}
+                icon={UserPlus}
+                label="Criar conta"
+              />
+            </div>
+          )}
 
           {/* API indisponível */}
           {apiUnavailable && (
@@ -102,6 +198,18 @@ export default function LoginPage() {
                 <code className="rounded bg-warning/10 px-1">API_TOKEN</code> no{" "}
                 <code className="rounded bg-warning/10 px-1">.env.local</code>.
               </span>
+            </div>
+          )}
+
+          {resetDone && (
+            <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 text-xs leading-5 text-emerald-700 dark:text-emerald-300">
+              Senha alterada. Entre com a nova senha.
+            </div>
+          )}
+
+          {recoverySent && (
+            <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2.5 text-xs leading-5 text-emerald-700 dark:text-emerald-300">
+              O pedido foi recebido. Se o e-mail estiver cadastrado, você receberá as instruções de recuperação.
             </div>
           )}
 
@@ -119,7 +227,7 @@ export default function LoginPage() {
               </Field>
             )}
 
-            <Field label="E-mail">
+            {mode !== "reset" && <Field label="E-mail">
               <input
                 type="email"
                 required
@@ -129,16 +237,16 @@ export default function LoginPage() {
                 autoComplete={mode === "login" ? "username" : "email"}
                 className={inputClass}
               />
-            </Field>
+            </Field>}
 
-            <Field label="Senha">
+            {mode !== "forgot" && <Field label="Senha">
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === "register" ? "8+ caracteres, letras e números" : "••••••••"}
+                  placeholder={mode === "login" ? "••••••••" : "8+ caracteres, letras e números"}
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
                   className={cn(inputClass, "pr-10")}
                 />
@@ -152,9 +260,21 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-            </Field>
+            </Field>}
 
-            {mode === "register" && (
+            {mode === "login" && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setMode("forgot"); setError(null); setRecoverySent(false) }}
+                  className="text-[11px] font-semibold text-primary transition hover:underline"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
+            )}
+
+            {(mode === "register" || mode === "reset") && (
               <Field label="Confirmar senha">
                 <div className="relative">
                   <input
@@ -179,6 +299,36 @@ export default function LoginPage() {
               </Field>
             )}
 
+            {mode === "register" && (
+              <label className="flex items-start gap-2 rounded-lg border border-border bg-background/50 p-3 text-[11px] leading-5 text-muted-foreground">
+                <input
+                  type="checkbox"
+                  required
+                  checked={acceptedPolicies}
+                  onChange={(e) => {
+                    setAcceptedPolicies(e.target.checked)
+                    if (e.target.checked) setError(null)
+                  }}
+                  className="mt-1 h-3.5 w-3.5 shrink-0 accent-primary"
+                />
+                <span>
+                  Li e aceito os{" "}
+                  <Link href="/termos" className="font-semibold text-primary hover:underline">
+                    Termos de Uso
+                  </Link>{" "}
+                  e estou ciente da{" "}
+                  <Link href="/privacidade" className="font-semibold text-primary hover:underline">
+                    Política de Privacidade
+                  </Link>
+                  . A{" "}
+                  <Link href="/cookies" className="font-semibold text-primary hover:underline">
+                    Política de Cookies
+                  </Link>{" "}
+                  explica as tecnologias necessárias ao funcionamento.
+                </span>
+              </label>
+            )}
+
             {error && (
               <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                 <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -193,8 +343,8 @@ export default function LoginPage() {
             >
               <Sparkles className="h-4 w-4" aria-hidden />
               {loading
-                ? mode === "login" ? "Entrando…" : "Criando conta…"
-                : mode === "login" ? "Entrar no estúdio" : "Criar conta e entrar"}
+                ? mode === "login" ? "Entrando…" : mode === "register" ? "Criando conta…" : "Enviando…"
+                : mode === "forgot" ? "Enviar instruções" : mode === "reset" ? "Salvar nova senha" : mode === "login" ? "Entrar no estúdio" : "Criar conta e entrar"}
             </button>
           </form>
 
@@ -206,7 +356,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-4 text-center text-[11px] text-muted-foreground">
-          LUCROM Studio AI · Fase 0 MVP · {new Date().getFullYear()}
+          Criatai Studio AI · Fase 0 MVP · {new Date().getFullYear()}
         </p>
       </div>
     </div>

@@ -21,6 +21,12 @@ export class UsageController {
     return this.usage.peek(tenantId);
   }
 
+  @Get('summary')
+  summary(@Req() req: Request) {
+    const { tenantId } = (req as Request & { user: JwtPayload }).user;
+    return this.usage.summary(tenantId);
+  }
+
   /**
    * Chamado pelas Route Handlers de IA do apps/web (ver
    * lib/auth/require-user-quota.ts) ANTES de iniciar uma geração paga —

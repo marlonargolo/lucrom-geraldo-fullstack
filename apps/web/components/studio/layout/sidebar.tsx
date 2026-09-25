@@ -2,18 +2,27 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, Clapperboard, Video, LayoutTemplate, Activity, ShieldCheck, LogOut, Sparkles } from "lucide-react"
+import { Home, Clapperboard, Video, LayoutTemplate, Activity, ShieldCheck, LogOut, Sparkles, Share2, Wallet, Settings2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/lib/auth/auth-context"
+import { LegalLinks } from "@/components/legal/legal-links"
 
+// Visível para qualquer usuário logado. "Administração" NÃO entra aqui de
+// propósito — ver ADMIN_NAV_ITEM abaixo, só some pra quem é admin de
+// plataforma (session.isPlatformAdmin), nunca por role de tenant.
 const NAV = [
-  { href: "/studio/inicio",        Icon: Home,           label: "Início" },
-  { href: "/studio/estudio",       Icon: Clapperboard,   label: "Estúdio" },
-  { href: "/studio/video",         Icon: Video,          label: "Vídeo" },
-  { href: "/studio/pecas",         Icon: LayoutTemplate, label: "Peças" },
-  { href: "/studio/pipeline",      Icon: Activity,       label: "Pipeline" },
-  { href: "/studio/consentimento", Icon: ShieldCheck,    label: "Consentimento" },
+  { href: "/studio/inicio",        Icon: Home,           label: "Início",         mobile: true },
+  { href: "/studio/estudio",       Icon: Clapperboard,   label: "Estúdio",        mobile: true },
+  { href: "/studio/video",         Icon: Video,          label: "Vídeo",          mobile: false },
+  { href: "/studio/pecas",         Icon: LayoutTemplate, label: "Peças",          mobile: true },
+  { href: "/studio/pipeline",      Icon: Activity,       label: "Pipeline",       mobile: false },
+  { href: "/studio/consentimento", Icon: ShieldCheck,    label: "Consentimento",  mobile: false },
+  { href: "/studio/contas",        Icon: Share2,         label: "Contas sociais", mobile: true },
+  { href: "/studio/consumo",       Icon: Wallet,         label: "Consumo",        mobile: true },
 ]
+
+/** Só aparece pra session.isPlatformAdmin === true — ver require-platform-admin.tsx, que também trava a rota em si (defesa em profundidade: some do menu E barra a URL direta). */
+const ADMIN_NAV_ITEM = { href: "/studio/admin", Icon: Settings2, label: "Administração" }
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -23,6 +32,8 @@ export function Sidebar() {
   const handleLogout = () => { logout(); router.push("/studio/login") }
   const initials = session?.email?.slice(0, 1).toUpperCase() ?? "U"
   const displayName = session?.email?.split("@")[0] ?? "Usuário"
+  const navItems = session?.isPlatformAdmin ? [...NAV, ADMIN_NAV_ITEM] : NAV
+  const mobileNavItems = NAV.filter((item) => item.mobile)
 
   return (
     <>
@@ -49,7 +60,7 @@ export function Sidebar() {
         </div>
 
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2 pt-3">
-          {NAV.map(({ href, Icon, label }) => {
+          {navItems.map(({ href, Icon, label }) => {
             const active = pathname === href || (href !== "/studio/inicio" && pathname.startsWith(href))
             return (
               <Link
@@ -70,10 +81,12 @@ export function Sidebar() {
         <div className="mx-2 mb-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
           <div className="mb-1 flex items-center gap-1.5">
             <Sparkles className="h-3 w-3 text-primary" />
-            <p className="text-[11px] font-semibold text-primary">Novidade no Lucrom AI</p>
+            <p className="text-[11px] font-semibold text-primary">Novidade no Criatai AI</p>
           </div>
           <p className="text-[11px] text-muted-foreground">Imagens com IA mais realistas.</p>
         </div>
+
+        <LegalLinks className="border-t border-border px-3 py-3" />
 
         <div className="border-t border-border p-3">
           <div className="flex items-center gap-2.5">
@@ -94,7 +107,7 @@ export function Sidebar() {
 
       {/* ── Mobile bottom nav ── */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-border bg-card md:hidden">
-        {NAV.slice(0, 5).map(({ href, Icon, label }) => {
+        {mobileNavItems.map(({ href, Icon, label }) => {
           const active = pathname === href || (href !== "/studio/inicio" && pathname.startsWith(href))
           return (
             <Link

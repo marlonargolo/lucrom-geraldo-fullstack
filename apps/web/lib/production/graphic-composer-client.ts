@@ -57,7 +57,7 @@ export interface GraphicComposition {
   id: string
   tenant_id: string
   kind: "carousel" | "static_art"
-  format: "1080x1350" | "1080x1920"
+  format: "1080x1080" | "1080x1350" | "1080x1920"
   output_asset_ids: string[]
   status: "DONE" | "FAILED"
   layers: GraphicSlideLayers[] | null
@@ -91,7 +91,7 @@ export interface BrandKitInput {
 
 export interface ComposeGraphicInput {
   kind: "carousel" | "static_art"
-  format: "1080x1350" | "1080x1920"
+  format: "1080x1080" | "1080x1350" | "1080x1920"
   slides: { title?: string; body?: string; footer?: string }[]
   brand_kit: BrandKitInput
 }

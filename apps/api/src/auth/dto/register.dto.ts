@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 
 /**
  * Regra mínima de senha: 8+ caracteres, ao menos 1 letra e 1 número —
@@ -26,4 +26,19 @@ export class RegisterDto {
   @IsString()
   @MaxLength(255)
   businessName?: string;
+
+  /**
+   * Aceite obrigatório: versão dos Termos de Uso e da Política de
+   * Privacidade exibidas ao usuário no momento do cadastro (ver
+   * apps/web/lib/legal/policies.ts — LEGAL_POLICY_VERSIONS).
+   */
+  @IsString()
+  @IsNotEmpty({ message: 'Aceite os Termos de Uso e a Política de Privacidade.' })
+  @MaxLength(80)
+  termsVersion: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'Aceite os Termos de Uso e a Política de Privacidade.' })
+  @MaxLength(80)
+  privacyVersion: string;
 }

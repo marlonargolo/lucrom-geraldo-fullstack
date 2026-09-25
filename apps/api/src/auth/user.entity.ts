@@ -39,6 +39,24 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true })
   last_login_at: Date | null;
 
+  /** Versão dos Termos de Uso aceita no cadastro (null = conta anterior ao aceite obrigatório). */
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  terms_version: string | null;
+
+  /** Versão da Política de Privacidade aceita no cadastro. */
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  privacy_version: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  legal_accepted_at: Date | null;
+
+  /**
+   * Admin da PLATAFORMA (equipe interna) — acesso a /api/v1/admin/*.
+   * Distinto de `role` (escopo de tenant). Só é alterado direto no banco.
+   */
+  @Column({ type: 'boolean', default: false })
+  is_platform_admin: boolean;
+
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
 }

@@ -52,7 +52,7 @@ type EditableTextKind = (typeof EDITABLE_TEXT_KINDS)[number]
 const TEXT_KIND_LABEL: Record<EditableTextKind, string> = {
   headline: "Título",
   subtitle: "Texto",
-  cta: "Chamada (CTA)",
+  cta: "Legenda / CTA",
 }
 
 const FONT_OPTIONS = [
@@ -350,6 +350,8 @@ export function QuickAdjustPanel({ compositionId, onSaved }: Props) {
             />
           ) : activeLayer?.kind === "logo" ? (
             <LogoControls layer={activeLayer} onChange={(style) => patchLayer(activeLayer.id, { style })} />
+          ) : activeLayer?.kind === "image" ? (
+            <ImageLayerControls layer={activeLayer} onChange={(style) => patchLayer(activeLayer.id, { style })} />
           ) : activeLayer ? (
             <TextLayerControls
               layer={activeLayer}
@@ -567,6 +569,45 @@ function LogoControls({ layer, onChange }: { layer: GraphicLayer; onChange: (sty
         <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
           <ImageIcon className="h-3 w-3" aria-hidden />
           Trocar logo (URL de um ativo já enviado)
+        </div>
+        <input
+          type="url"
+          placeholder="https://..."
+          defaultValue={layer.style.assetUrl ?? ""}
+          onBlur={(e) => e.target.value && onChange({ assetUrl: e.target.value })}
+          className="w-full rounded-lg border border-border bg-secondary px-3 py-2 text-sm text-foreground outline-none focus:border-primary/40"
+        />
+      </div>
+
+      <Slider
+        label="Intensidade"
+        value={Math.round((layer.style.opacity ?? 1) * 100)}
+        min={10}
+        max={100}
+        unit="%"
+        onChange={(v) => onChange({ opacity: v / 100 })}
+      />
+    </div>
+  )
+}
+
+function ImageLayerControls({ layer, onChange }: { layer: GraphicLayer; onChange: (style: GraphicLayerStyle) => void }) {
+  const visible = layer.style.visible !== false
+  return (
+    <div className="flex flex-col gap-4">
+      <button
+        type="button"
+        onClick={() => onChange({ visible: !visible })}
+        className="inline-flex items-center gap-2 self-start rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        {visible ? <Eye className="h-3.5 w-3.5" aria-hidden /> : <EyeOff className="h-3.5 w-3.5" aria-hidden />}
+        {visible ? "Imagem visível" : "Imagem oculta"}
+      </button>
+
+      <div>
+        <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <ImageIcon className="h-3 w-3" aria-hidden />
+          Trocar imagem (URL de um ativo já enviado)
         </div>
         <input
           type="url"

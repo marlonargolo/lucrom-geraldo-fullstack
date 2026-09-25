@@ -32,6 +32,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsageModule } from './usage/usage.module';
 import { BrandModule } from './brand/brand.module';
 import { BillingModule } from './billing/billing.module';
+import { AdminModule } from './admin/admin.module';
+import { BriefingModule } from './creative/briefing/briefing.module';
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { BillingModule } from './billing/billing.module';
     UsageModule,
     BrandModule,
     BillingModule,
+    AdminModule,
+    BriefingModule,
     // ─── Módulos referenciados no app.module.ts de "lucrom-studio-COMPLETO-FINAL"
     // (PreFlightModule, RealtimeGatewayModule, SocialIntegrationsModule,
     // ContractsModule, ObservabilityModule, EventBusModule) continuam sem

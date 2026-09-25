@@ -88,7 +88,10 @@ async function handle(req: NextRequest, path: string[]) {
 
   const fullPath = path.join('/')
   const isPublicAuth =
-    fullPath === 'api/v1/auth/login' || fullPath === 'api/v1/auth/register'
+    fullPath === 'api/v1/auth/login' ||
+    fullPath === 'api/v1/auth/register' ||
+    fullPath === 'api/v1/auth/forgot-password' ||
+    fullPath === 'api/v1/auth/reset-password'
 
   // Rotas protegidas exigem JWT válido
   let realTenantId = ''

@@ -2,8 +2,8 @@
 //
 // Equivalente a app/api/billing/checkout/route.ts, mas para os produtos de
 // COMPRA ÚNICA (fora da assinatura mensal):
-//   - AVULSO: 1 vídeo de 60s — R$ 39,90
-//   - PACOTE5: 5 vídeos de 60s — R$ 179,90
+//   - AVULSO: 1 vídeo — R$ 29,90
+//   - PACOTE5: 5 vídeos de 30s — R$ 134,90
 //
 // BLINDAGEM FINANCEIRA: o preço cobrado NUNCA vem do corpo desta
 // requisição. Esta rota só repassa `productCode` para o backend NestJS
@@ -27,8 +27,8 @@ type OneOffProductCode = "AVULSO" | "PACOTE5"
 // Só para o texto exibido no PIX/Checkout Pro — o valor cobrado de verdade
 // vem da resposta do backend (backendIntent.amount_cents), nunca daqui.
 const PRODUCT_LABELS: Record<OneOffProductCode, string> = {
-  AVULSO: "Lucrom Studio - Vídeo avulso (1 vídeo 60s)",
-  PACOTE5: "Lucrom Studio - Pacote de 5 vídeos (60s)",
+  AVULSO: "Criatai Studio - Vídeo avulso (1 vídeo)",
+  PACOTE5: "Criatai Studio - Pacote de 5 vídeos (30s)",
 }
 
 interface CheckoutBody {

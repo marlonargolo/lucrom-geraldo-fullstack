@@ -10,12 +10,12 @@ export interface QuotaBadgeProps {
   loggedIn: boolean
   /** Sem página de checkout ainda — por padrão abre um e-mail de contato. */
   onUpgradeClick?: () => void
-  /** Upsell de compra avulsa (1 vídeo, R$ 39,90) quando a cota do mês esgota. */
+  /** Upsell de compra avulsa (1 vídeo, R$ 29,90) quando a cota do mês esgota. */
   onBuyOneOffClick?: () => void
   className?: string
 }
 
-const DEFAULT_UPGRADE_EMAIL = "mailto:vendas@lucrom.studio?subject=Upgrade%20de%20plano%20-%20Lucrom%20Studio"
+const DEFAULT_UPGRADE_EMAIL = "mailto:vendas@criatai.studio?subject=Upgrade%20de%20plano%20-%20Criatai%20Studio"
 
 /**
  * Badge discreto de cota mensal de IA. Não renderiza nada se: deslogado,
@@ -73,8 +73,8 @@ export function QuotaBadge({ quota, loading, loggedIn, onUpgradeClick, onBuyOneO
             <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-destructive" aria-hidden />
             <p className="flex-1 text-[11px] leading-snug text-destructive">
               {quota.extraCreditsRemaining
-                ? `Vídeo grátis do mês esgotado. Você ainda tem ${quota.extraCreditsRemaining} crédito(s) avulso(s).`
-                : "Seu vídeo grátis do mês esgotou."}
+                ? `Vídeos grátis do mês esgotados. Você ainda tem ${quota.extraCreditsRemaining} crédito(s) avulso(s).`
+                : "Seus vídeos grátis do mês esgotaram."}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -83,7 +83,7 @@ export function QuotaBadge({ quota, loading, loggedIn, onUpgradeClick, onBuyOneO
               onClick={onBuyOneOffClick ?? (() => window.open(DEFAULT_UPGRADE_EMAIL, "_blank"))}
               className="flex-1 rounded-md border border-primary/40 px-2 py-1 text-[10px] font-semibold text-primary hover:bg-primary/5"
             >
-              +1 vídeo por R$ 39,90
+              +1 vídeo por R$ 29,90
             </button>
             <button
               type="button"

@@ -1,3 +1,5 @@
+"use client"
+
 // Sessão do usuário autenticado (JWT emitido por POST /api/v1/auth/login,
 // ver apps/api/src/auth/auth.service.ts). Guardada em localStorage — este é
 // um frontend Next.js client-heavy (sem cookies HTTP-only de sessão), então
@@ -19,6 +21,8 @@ export interface Session {
   userId: string
   email: string
   tenantId: string
+  /** Admin da PLATAFORMA (equipe Criatai) — distinto do role de tenant. Controla o acesso a /studio/admin. */
+  isPlatformAdmin: boolean
 }
 
 type Listener = () => void
@@ -45,9 +49,17 @@ export function getSession(): Session | null {
       typeof parsed.email !== 'string' ||
       typeof parsed.tenantId !== 'string'
     ) {
+      window.localStorage.removeItem(STORAGE_KEY)
       return null
     }
-    return parsed as Session
+    if (parsed.accessToken.startsWith("local-demo-")) {
+      window.localStorage.removeItem(STORAGE_KEY)
+      return null
+    }
+    // `isPlatformAdmin` é novo — sessões salvas antes desta mudança não têm
+    // o campo no localStorage. Default `false` (nunca assume admin por
+    // ausência de dado) em vez de invalidar a sessão inteira.
+    return { ...parsed, isPlatformAdmin: parsed.isPlatformAdmin === true } as Session
   } catch {
     return null
   }

@@ -27,7 +27,7 @@ export function getRedisClient(): Redis | null {
     maxRetriesPerRequest: 1,
     lazyConnect: false,
   })
-  client.on("error", (err) => {
+  client.on("error", (err: Error) => {
     console.error("[redis-client] erro de conexão com Redis:", err.message)
   })
   return client

@@ -53,8 +53,8 @@ export class ComposeGraphicDto {
   @IsIn(['carousel', 'static_art'])
   kind: 'carousel' | 'static_art';
 
-  @IsIn(['1080x1350', '1080x1920'])
-  format: '1080x1350' | '1080x1920';
+  @IsIn(['1080x1080', '1080x1350', '1080x1920'])
+  format: '1080x1080' | '1080x1350' | '1080x1920';
 
   @IsArray()
   @ArrayMinSize(1)

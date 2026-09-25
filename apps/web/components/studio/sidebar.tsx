@@ -46,7 +46,7 @@ export function Sidebar() {
           <Sparkles className="h-3.5 w-3.5 text-primary-foreground" aria-hidden />
         </div>
         <div className="leading-none">
-          <p className="text-[13px] font-bold tracking-tight text-foreground">Lucrom Studio</p>
+          <p className="text-[13px] font-bold tracking-tight text-foreground">Criatai Studio</p>
           <p className="text-[10px] text-muted-foreground">Agência de IA</p>
         </div>
       </div>
@@ -75,7 +75,7 @@ export function Sidebar() {
 
       {/* Novidade */}
       <div className="mx-2 mb-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
-        <p className="mb-0.5 text-[11px] font-semibold text-primary">Novidade no Lucrom AI</p>
+        <p className="mb-0.5 text-[11px] font-semibold text-primary">Novidade no Criatai AI</p>
         <p className="text-[11px] text-muted-foreground">Imagens com IA mais realistas.</p>
       </div>
 

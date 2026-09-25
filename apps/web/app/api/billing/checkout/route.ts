@@ -20,26 +20,37 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ""
 const API_TOKEN = process.env.API_TOKEN || ""
 const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL ?? "").replace(/\/$/, "")
 
-// Preço do plano PRO em centavos — configurável, com um default razoável (R$ 49,90/mês).
-const PRO_PLAN_PRICE_CENTS = Number(process.env.BILLING_PRO_PLAN_PRICE_CENTS) || 4990
+// BLINDAGEM FINANCEIRA: o preço de cada plano (PRO/PLUS) é resolvido SÓ no
+// backend (apps/api/src/billing/plan-products.ts). Esta rota apenas repassa
+// o código do plano e cobra no Mercado Pago o `amount_cents` que o backend
+// gravou na intenção de pagamento — nunca um valor vindo do navegador.
+type PaidPlan = "PRO" | "PLUS"
+
+const PLAN_LABELS: Record<PaidPlan, string> = {
+  PRO: "Criatai Studio - Plano PRO (mensal)",
+  PLUS: "Criatai Studio - Plano PLUS (mensal)",
+}
 
 interface CheckoutBody {
   method?: unknown
+  plan?: unknown
 }
 
 interface BackendPayment {
   id: string
+  amount_cents: number
 }
 
 async function createBackendIntent(
   userToken: string,
   method: "pix" | "card",
+  plan: PaidPlan,
 ): Promise<{ ok: true; payment: BackendPayment } | { ok: false; response: NextResponse }> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/v1/billing/checkout-intents`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-User-Token": userToken },
-      body: JSON.stringify({ plan: "PRO", method, amountCents: PRO_PLAN_PRICE_CENTS }),
+      body: JSON.stringify({ plan, method }),
     })
     if (res.status === 401) {
       return {
@@ -103,17 +114,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Campo 'method' precisa ser 'pix' ou 'card'." }, { status: 400 })
   }
 
+  const plan: PaidPlan | null = body.plan === undefined || body.plan === "PRO" ? "PRO" : body.plan === "PLUS" ? "PLUS" : null
+  if (!plan) {
+    return NextResponse.json({ error: "Campo 'plan' precisa ser 'PRO' ou 'PLUS'." }, { status: 400 })
+  }
+
   const userToken = req.headers.get("x-user-token") ?? ""
-  const intent = await createBackendIntent(userToken, method)
+  const intent = await createBackendIntent(userToken, method, plan)
   if (!intent.ok) return intent.response
+  const amountCents = intent.payment.amount_cents
 
   const notificationUrl = `${PUBLIC_SITE_URL}/api/billing/webhook`
 
   try {
     if (method === "pix") {
       const pix = await createPixPayment({
-        amountCents: PRO_PLAN_PRICE_CENTS,
-        description: "Lucrom Studio - Plano PRO (mensal)",
+        amountCents,
+        description: PLAN_LABELS[plan],
         externalReference: intent.payment.id,
         payerEmail: auth.user.email,
         notificationUrl,
@@ -131,8 +148,8 @@ export async function POST(req: NextRequest) {
     }
 
     const card = await createCardCheckout({
-      amountCents: PRO_PLAN_PRICE_CENTS,
-      description: "Lucrom Studio - Plano PRO (mensal)",
+      amountCents,
+      description: PLAN_LABELS[plan],
       externalReference: intent.payment.id,
       notificationUrl,
       backUrls: {
