@@ -2,9 +2,14 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { getSession, setSession, clearSession, subscribeSession, type Session } from "./session-store"
-import { apiFetch, isApiConfigured, ApiError } from "@/lib/api/client"
+import { apiFetch, ApiError } from "@/lib/api/client"
 
 const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/
+
+export interface LegalAcceptance {
+  termsVersion: string
+  privacyVersion: string
+}
 
 export function friendlyApiError(err: unknown): string {
   if (err instanceof ApiError) {
@@ -25,7 +30,7 @@ interface AuthContextValue {
   session: Session | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, businessName?: string) => Promise<void>
+  register: (email: string, password: string, businessName: string | undefined, legalAcceptance: LegalAcceptance) => Promise<void>
   logout: () => void
   validatePassword: (password: string, confirm?: string) => string | null
 }
@@ -43,23 +48,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const doLogin = async (email: string, password: string) => {
-    const res = await apiFetch<{ accessToken: string; user: { id: string; email: string; tenantId: string } }>(
-      "/api/v1/auth/login",
-      { method: "POST", body: JSON.stringify({ email, password }) },
-    )
-    setSession({ accessToken: res.accessToken, userId: res.user.id, email: res.user.email, tenantId: res.user.tenantId })
+    const res = await apiFetch<{
+      accessToken: string
+      user: { id: string; email: string; tenantId: string; isPlatformAdmin?: boolean }
+    }>("/api/v1/auth/login", { method: "POST", body: JSON.stringify({ email, password }) })
+    setSession({
+      accessToken: res.accessToken,
+      userId: res.user.id,
+      email: res.user.email,
+      tenantId: res.user.tenantId,
+      isPlatformAdmin: res.user.isPlatformAdmin === true,
+    })
   }
 
   const login = async (email: string, password: string) => {
     await doLogin(email, password)
   }
 
-  const register = async (email: string, password: string, businessName?: string) => {
-    await apiFetch("/api/v1/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, password, businessName: businessName?.trim() || undefined }),
+  const register = async (
+    email: string,
+    password: string,
+    businessName: string | undefined,
+    legalAcceptance: LegalAcceptance,
+  ) => {
+    const response = await apiFetch<{
+      accessToken: string
+      id: string
+      email: string
+      tenantId: string
+    }>("/api/v1/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          password,
+          businessName: businessName?.trim() || undefined,
+          ...legalAcceptance,
+        }),
+      })
+    setSession({
+      accessToken: response.accessToken,
+      userId: response.id,
+      email: response.email,
+      tenantId: response.tenantId,
+      isPlatformAdmin: false,
     })
-    await doLogin(email, password)
   }
 
   const logout = () => clearSession()

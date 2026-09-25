@@ -1,6 +1,6 @@
 /**
  * Catálogo de produtos de COMPRA ÚNICA (fora do ciclo de assinatura
- * mensal dos planos CREATOR/PRO/ENTERPRISE — ver usage.service.ts).
+ * mensal dos planos CREATOR/PRO/PLUS/ENTERPRISE — ver usage.service.ts).
  *
  * BLINDAGEM FINANCEIRA: o preço e os créditos concedidos aqui são a ÚNICA
  * fonte de verdade. O backend NUNCA aceita `amountCents` ou `credits`
@@ -26,19 +26,19 @@ export interface OneOffProduct {
 }
 
 export const ONE_OFF_PRODUCTS: Record<OneOffProductCode, OneOffProduct> = {
-  // Compra avulsa: 1 vídeo de 60s, R$ 39,90.
+  // Compra avulsa: 1 vídeo, R$ 29,90.
   AVULSO: {
     code: 'AVULSO',
     label: 'Vídeo avulso',
     credits: 1,
-    amountCents: 3990,
+    amountCents: 2990,
   },
-  // Pacote fechado: 5 vídeos de 60s, R$ 179,90.
+  // Pacote fechado: 5 vídeos de 30s, R$ 134,90.
   PACOTE5: {
     code: 'PACOTE5',
-    label: 'Pacote de 5 vídeos (60s)',
+    label: 'Pacote de 5 vídeos (30s)',
     credits: 5,
-    amountCents: 17_990,
+    amountCents: 13_490,
   },
 };
 

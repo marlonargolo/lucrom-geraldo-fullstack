@@ -13,8 +13,8 @@ import {
 } from "@/lib/billing/checkout-client"
 import type { QuotaInfo } from "@/lib/billing/quota-error"
 
-/** 'PRO' = upgrade de assinatura (comportamento original). 'AVULSO'/'PACOTE5' = compra única de créditos de vídeo. */
-export type PurchaseProduct = "PRO" | OneOffProductCode
+/** 'PRO'/'PLUS' = upgrade de assinatura. 'AVULSO'/'PACOTE5' = compra única de créditos de vídeo. */
+export type PurchaseProduct = "PRO" | "PLUS" | OneOffProductCode
 
 export interface UpgradeModalProps {
   open: boolean
@@ -28,27 +28,35 @@ export interface UpgradeModalProps {
 
 type Stage = "choose" | "loading" | "pix" | "card" | "polling" | "success" | "failed"
 
-const PRO_PRICE_LABEL = "R$ 49,90/mês"
+const PRO_PRICE_LABEL = "R$ 119/mês"
+const PLUS_PRICE_LABEL = "R$ 329/mês"
 
 const PRODUCT_COPY: Record<PurchaseProduct, { title: string; summary: string; detail: string; successTitle: string; successBody: string }> = {
   PRO: {
     title: "Upgrade para o plano PRO",
     summary: `Plano PRO — ${PRO_PRICE_LABEL}`,
-    detail: "100 gerações de IA por mês, reset imediato ao confirmar.",
+    detail: "5 gerações de IA por mês, sem marca d'água, reset imediato ao confirmar.",
     successTitle: "Upgrade confirmado!",
-    successBody: "Seu plano agora é PRO, com 100 gerações por mês.",
+    successBody: "Seu plano agora é PRO, com 5 gerações por mês.",
+  },
+  PLUS: {
+    title: "Upgrade para o plano PLUS",
+    summary: `Plano PLUS — ${PLUS_PRICE_LABEL}`,
+    detail: "15 gerações de IA por mês, sem marca d'água, reset imediato ao confirmar.",
+    successTitle: "Upgrade confirmado!",
+    successBody: "Seu plano agora é PLUS, com 15 gerações por mês.",
   },
   AVULSO: {
     title: "Comprar vídeo avulso",
-    summary: "1 vídeo avulso — R$ 39,90",
-    detail: "1 crédito de vídeo extra, liberado assim que o pagamento é confirmado. Não expira no fim do mês.",
+    summary: "1 vídeo avulso — R$ 29,90",
+    detail: "1 crédito de vídeo extra sem marca d'água, liberado assim que o pagamento é confirmado. Não expira no fim do mês.",
     successTitle: "Compra confirmada!",
     successBody: "1 crédito de vídeo foi adicionado à sua conta.",
   },
   PACOTE5: {
     title: "Comprar pacote de 5 vídeos",
-    summary: "Pacote de 5 vídeos (60s) — R$ 179,90",
-    detail: "5 créditos de vídeo, liberados assim que o pagamento é confirmado. Não expiram no fim do mês.",
+    summary: "Pacote de 5 vídeos (30s) — R$ 134,90",
+    detail: "5 créditos de vídeo sem marca d'água, liberados assim que o pagamento é confirmado. Não expiram no fim do mês.",
     successTitle: "Compra confirmada!",
     successBody: "5 créditos de vídeo foram adicionados à sua conta.",
   },
@@ -102,7 +110,7 @@ export function UpgradeModal({ open, onClose, onUpgraded, quota, product = "PRO"
   }
 
   const startProductCheckout = (method: "pix" | "card") =>
-    product === "PRO" ? startCheckout(method) : startOneOffCheckout(product, method)
+    product === "PRO" || product === "PLUS" ? startCheckout(method, product) : startOneOffCheckout(product, method)
 
   const choosePix = async () => {
     setStage("loading")

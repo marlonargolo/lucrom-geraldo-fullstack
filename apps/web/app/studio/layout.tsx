@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { AuthProvider, useAuth } from "@/lib/auth/auth-context"
 import { Sidebar } from "@/components/studio/layout/sidebar"
 import { Topbar } from "@/components/studio/layout/topbar"
+import { LegalLinks } from "@/components/legal/legal-links"
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -37,6 +38,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
         {/* Desktop: offset topbar; Mobile: offset topbar + bottom nav */}
         <main className="flex-1 overflow-auto pt-14 pb-16 md:pb-0">
           <div className="h-full p-4 md:p-6">{children}</div>
+          <footer className="border-t border-border px-4 py-3 md:px-6">
+            <LegalLinks />
+          </footer>
         </main>
       </div>
     </div>

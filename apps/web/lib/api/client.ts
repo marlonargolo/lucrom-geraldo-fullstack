@@ -18,11 +18,18 @@ export function isApiConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_API_BASE_URL && getSession())
 }
 
+/** true quando o backend está configurado neste deploy (independe de sessão) — usado pela tela de login. */
+export function isApiAvailable(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_API_BASE_URL)
+}
+
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const session = getSession()
 
   const isPublicAuthRoute =
-    path.includes('/auth/login') || path.includes('/auth/register')
+    path.includes('/auth/login') ||
+    path.includes('/auth/register') ||
+    path.includes('/auth/forgot-password')
 
   if (!session && !isPublicAuthRoute) {
     throw new ApiError('Faça login para usar este recurso.', 401)

@@ -60,7 +60,7 @@ export function ProductionPreview({ state, brandId, formatId }: Props) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `lucrom-${brand.id}-${format.id}-${Date.now()}.json`
+    a.download = `criatai-${brand.id}-${format.id}-${Date.now()}.json`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

@@ -1,8 +1,10 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 /**
  * Únicas rotas públicas (sem ApiTokenGuard/JwtAuthGuard) do backend — todo o
@@ -22,5 +24,17 @@ export class AuthController {
   login(@Body() dto: LoginDto, @Req() req: Request) {
     const clientIp = req.ip ?? req.socket?.remoteAddress ?? 'unknown';
     return this.auth.login(dto, clientIp);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.auth.forgotPassword(dto.email);
+  }
+
+  @Post('reset-password')
+  @HttpCode(200)
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.auth.resetPassword(dto.token, dto.password);
   }
 }

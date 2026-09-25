@@ -409,16 +409,16 @@ function StrategyForm({
         className="w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-sm"
       />
       <div className="grid grid-cols-2 gap-2">
-        <EnumSelect label="Ângulo" value={angle} options={STRATEGY_ANGLES} onChange={setAngle} />
+        <EnumSelect label="Ângulo" value={angle} options={STRATEGY_ANGLES} onChange={(value) => setAngle(value as typeof angle)} />
         <EnumSelect
           label="Abordagem psicológica"
           value={psychologicalApproach}
           options={PSYCHOLOGICAL_APPROACHES}
-          onChange={setPsychologicalApproach}
+          onChange={(value) => setPsychologicalApproach(value as typeof psychologicalApproach)}
         />
-        <EnumSelect label="Canal" value={primaryChannel} options={PRIMARY_CHANNELS} onChange={setPrimaryChannel} />
-        <EnumSelect label="Emoção-alvo" value={desiredEmotion} options={DESIRED_EMOTIONS} onChange={setDesiredEmotion} />
-        <EnumSelect label="Tipo de CTA" value={callToActionType} options={CTA_TYPES} onChange={setCallToActionType} />
+        <EnumSelect label="Canal" value={primaryChannel} options={PRIMARY_CHANNELS} onChange={(value) => setPrimaryChannel(value as typeof primaryChannel)} />
+        <EnumSelect label="Emoção-alvo" value={desiredEmotion} options={DESIRED_EMOTIONS} onChange={(value) => setDesiredEmotion(value as typeof desiredEmotion)} />
+        <EnumSelect label="Tipo de CTA" value={callToActionType} options={CTA_TYPES} onChange={(value) => setCallToActionType(value as typeof callToActionType)} />
       </div>
       <button
         type="submit"

@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Inter, Space_Grotesk, Geist_Mono } from 'next/font/google'
 import './globals.css'
+import { CookieConsentBanner } from '@/components/legal/cookie-consent-banner'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const spaceGrotesk = Space_Grotesk({
@@ -11,7 +12,7 @@ const spaceGrotesk = Space_Grotesk({
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'Creatai.',
+  title: 'Criatai.',
   description:
     'Estúdio de produção audiovisual operado por IA. Do briefing à peça publicitária pronta, em camadas, com padrão de agência.',
   generator: 'v0.app',
@@ -51,6 +52,7 @@ export default function RootLayout({
     >
       <body className="antialiased bg-background font-sans">
         {children}
+        <CookieConsentBanner />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

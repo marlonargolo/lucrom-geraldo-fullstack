@@ -88,7 +88,7 @@ export async function requireUserWithQuota(req: NextRequest): Promise<RequireUse
       ok: false,
       response: NextResponse.json(
         {
-          error: `Seu vídeo grátis do mês (plano ${quota.plan}, ${quota.used}/${quota.limit}) já foi usado e você não tem créditos avulsos. Compre 1 vídeo avulso por R$ 39,90 ou o pacote de 5 vídeos por R$ 179,90, ou faça upgrade de plano para continuar.`,
+          error: `Seus vídeos grátis do mês (plano ${quota.plan}, ${quota.used}/${quota.limit}) já foram usados e você não tem créditos avulsos. Compre 1 vídeo avulso por R$ 29,90 ou o pacote de 5 vídeos por R$ 134,90, ou faça upgrade de plano para continuar.`,
           quota,
         },
         { status: 402 },

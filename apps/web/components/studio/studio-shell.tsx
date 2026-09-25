@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Activity, Lock, Clapperboard, Network, Video, ShieldCheck, LayoutTemplate, UserRound, LogOut } from "lucide-react"
+import { AccountPanel } from "./account-panel"
 import { cn } from "@/lib/utils"
 import { BRAND_KITS, FORMATS } from "@/lib/studio-data"
 import { useProduction } from "@/lib/use-production"
@@ -19,7 +20,7 @@ import { ConsentManager } from "./consent-manager"
 import { RealPipelinePanel } from "./real-pipeline-panel"
 import { GraphicsLab } from "./graphics-lab"
 
-type View = "studio" | "video" | "consent" | "architecture" | "real" | "graphics"
+type View = "studio" | "video" | "consent" | "architecture" | "real" | "graphics" | "account"
 
 export function StudioShell() {
   const { state, start, reset, refineLayer, decideGate } = useProduction()
@@ -39,7 +40,9 @@ export function StudioShell() {
       <Header status={state.status} progress={state.progress} view={view} onViewChange={setView} />
 
       <main className="mx-auto w-full max-w-7xl px-4 pb-16 pt-6 sm:px-6">
-        {view === "architecture" ? (
+        {view === "account" ? (
+          <AccountPanel />
+        ) : view === "architecture" ? (
           <ArchitectureBlueprint />
         ) : view === "video" ? (
           <VideoLab />
@@ -201,6 +204,7 @@ function Header({
           <ViewTab active={view === "video"} onClick={() => onViewChange("video")} icon={Video} label="Vídeo" />
           <ViewTab active={view === "real"} onClick={() => onViewChange("real")} icon={ShieldCheck} label="Pipeline real" />
           <ViewTab active={view === "graphics"} onClick={() => onViewChange("graphics")} icon={LayoutTemplate} label="Peças" />
+          <ViewTab active={view === "account"} onClick={() => onViewChange("account")} icon={UserRound} label="Minha conta" />
           {showInternalViews ? (
             <ViewTab active={view === "architecture"} onClick={() => onViewChange("architecture")} icon={Network} label="Arquitetura" />
           ) : null}

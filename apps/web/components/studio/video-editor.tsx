@@ -171,7 +171,7 @@ export function VideoEditor() {
     if (!resultUrl) return
     fetch(resultUrl)
       .then((r) => r.blob())
-      .then((blob) => downloadBlob(blob, `lucrom-editado.${extForMime(resultMime)}`))
+      .then((blob) => downloadBlob(blob, `criatai-editado.${extForMime(resultMime)}`))
   }
 
   const filterString = buildFilterString(filters)

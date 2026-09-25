@@ -21,7 +21,7 @@ export class BillingService {
    * webhook (que só recebe o ID do pagamento no Mercado Pago) sabe qual
    * tenant/pagamento nosso corresponde.
    *
-   * Usado para upgrade de ASSINATURA (plano PRO). Para compra avulsa de
+   * Usado para upgrade de ASSINATURA (planos PRO/PLUS). Para compra avulsa de
    * créditos (AVULSO/PACOTE5), ver `createPendingOneOffPayment` abaixo —
    * são fluxos separados porque a aprovação de cada um afeta uma coisa
    * diferente no tenant (plan_tier vs. extra_video_credits).
@@ -44,8 +44,8 @@ export class BillingService {
   }
 
   /**
-   * Cria o registro 'pending' para compra AVULSA (1 vídeo, R$ 39,90) ou
-   * PACOTE5 (5 vídeos, R$ 179,90).
+   * Cria o registro 'pending' para compra AVULSA (1 vídeo, R$ 29,90) ou
+   * PACOTE5 (5 vídeos, R$ 134,90).
    *
    * BLINDAGEM FINANCEIRA: `amountCents` e `credits` NUNCA vêm do chamador
    * (controller) como valor livre — são sempre resolvidos aqui a partir de
@@ -76,10 +76,26 @@ export class BillingService {
     await this.payments.update({ id: paymentId }, { external_id: externalId });
   }
 
-  async getPayment(paymentId: string): Promise<Payment> {
-    const payment = await this.payments.findOne({ where: { id: paymentId } });
+  /**
+   * `tenantId` opcional: quando informado (chamadas de usuário final), o
+   * pagamento só é devolvido se pertencer àquele tenant — evita que um
+   * usuário consulte o pagamento de outro tenant sabendo o UUID.
+   */
+  async getPayment(paymentId: string, tenantId?: string): Promise<Payment> {
+    const payment = await this.payments.findOne({
+      where: tenantId ? { id: paymentId, tenant_id: tenantId } : { id: paymentId },
+    });
     if (!payment) throw new NotFoundException(`Pagamento ${paymentId} não encontrado.`);
     return payment;
+  }
+
+  /** Últimos pagamentos do tenant (mais recentes primeiro) — painel "Consumo e créditos". */
+  async listPayments(tenantId: string, limit = 20): Promise<Payment[]> {
+    return this.payments.find({
+      where: { tenant_id: tenantId },
+      order: { created_at: 'DESC' },
+      take: limit,
+    });
   }
 
   /**

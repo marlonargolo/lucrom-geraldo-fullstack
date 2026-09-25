@@ -52,7 +52,7 @@ export default function ConsentimentoPage() {
     if (!subject.trim() || !document.trim()) return
     setSaving(true)
     try {
-      await addConsent({ type, subject, document, scope, validDays: 365 })
+      await addConsent({ type, subject, document, scope, term: document, validDays: 365 })
       setSubject(""); setDocument(""); setShowForm(false)
     } finally { setSaving(false) }
   }

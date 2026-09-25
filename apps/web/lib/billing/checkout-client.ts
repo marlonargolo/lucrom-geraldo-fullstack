@@ -10,14 +10,14 @@ export type CheckoutResult =
 export type PaymentStatus = "pending" | "approved" | "rejected" | "refunded"
 
 /** Chama POST /api/billing/checkout (Route Handler, apps/web) — cria a cobrança PIX ou o link de Checkout Pro. */
-export async function startCheckout(method: "pix" | "card"): Promise<CheckoutResult> {
+export async function startCheckout(method: "pix" | "card", plan: "PRO" | "PLUS" = "PRO"): Promise<CheckoutResult> {
   const session = getSession()
   if (!session) throw new Error("Faça login para fazer upgrade de plano.")
 
   const res = await fetch("/api/billing/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-User-Token": session.accessToken },
-    body: JSON.stringify({ method }),
+    body: JSON.stringify({ method, plan }),
   })
   const data = await res.json().catch(() => null)
   if (!res.ok) {
